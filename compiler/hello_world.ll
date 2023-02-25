@@ -1,7 +1,9 @@
-declare void @std_puts(i8*, i32)
 define i32 @main() {
-%1 = getelementptr [14 x i8],[14 x i8]* @.str1, i64 0, i64 0
-call void @std_puts(i8* %1, i32 14)
-ret i32 0
+%a = alloca [32 x i8]
+%1 = getelementptr [32 x i8], [32 x i8]* %a, i64 0, i32 3
+store i8 120, i8* %1
+%2 = getelementptr [32 x i8], [32 x i8]* %a, i64 0, i32 3
+%3 = load i8, i8* %2
+%4 = sext i8 %3 to i32
+ret i32 %4
 }
-@.str1 = private unnamed_addr constant [14 x i8] c"Hello world!\0A\00"

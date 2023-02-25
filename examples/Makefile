@@ -10,7 +10,7 @@ LD_FLAGS = ../libstd/puts.o
 PYTHON3 = python3
 YCC = ../compiler/ycc.py
 
-EXAMPLES = return.bin hello_world.bin
+EXAMPLES = return.bin hello_world.bin array.bin
 
 all: $(EXAMPLES)
 

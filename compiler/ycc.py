@@ -11,15 +11,17 @@ class Compilator:
         self.string_literals = []
         self.string_i = 0
         self.declared = []
+        self.variables = []
 
     def get_output(self):
         return self.output
 
-    def parse_exists(self, split):
-        return_type = next(split)
+    def name_and_params_from_split(self, split):
         name = next(split)
         params = []
-        if not name.endswith(")"):
+        if name.endswith(")"):
+            name = name[:-2]
+        else:
             while (next_token := next(split, None)) != None:
                 name += " " + next_token
                 if next_token.endswith(")"):
@@ -27,6 +29,11 @@ class Compilator:
                     name = splited[0]
                     params = [item.strip() for item in splited[1][:-1].split(",")]
                     break
+        return (name, params)
+
+    def parse_exists(self, split):
+        return_type = next(split)
+        (name, params) = self.name_and_params_from_split(split)
 
         declare = {}
         declare["return_type"] = return_type
@@ -37,10 +44,29 @@ class Compilator:
         self.output += f"declare {return_type} @{name}({', '.join(params)})\n"
 
     def parse_proc(self, split):
+        self.var_i = -1
         return_type = next(split)
-        name = next(split)
+        (name, params) = self.name_and_params_from_split(split)
 
-        self.output += f"define {return_type} @{name} {{\n" # }}
+        declare = {}
+        declare["return_type"] = return_type
+        declare["name"] = name
+        declare["params"] = [param.split()[0] for param in params]
+        self.declared.append(declare)
+
+        parm_str = ""
+        first = True
+        for param in params:
+            param = param.split(" ")
+            next_var = self.next_var()
+            self.variables.append((param[0], param[1][1:], next_var))
+            if not first:
+                parm_str += ", "
+            parm_str += f"{param[0]} %{next_var}"
+            first = False
+
+        self.output += f"define {return_type} @{name}({parm_str}) {{\n" # }}
+        self.var_i += 1
 
     def parse_string_literal(self, split, token):
         if token.endswith("\""):
@@ -70,33 +96,95 @@ class Compilator:
 
     def make_call(self, func):
         buffer = ""
-        if func["return_type"] == "void":
-            if len(func["params"]) == 0:
-                self.output += f"call void @{func['name']}()"
-            else:
-                buffer += f"call void @{func['name']}(" #)
-                first = True
-                for param in func["params"]:
-                    if not first:
-                        buffer += ", "
-
-                    poped = self.history.pop()
-                    if poped[0] == "-str-":
-                        new_var = self.next_var()
-                        size = poped[2]
-                        self.output += f"%{new_var} = getelementptr [{size} x i8],[{size} x i8]* @.str{poped[1]}, i64 0, i64 0\n"
-                        buffer += f"i8* %{new_var}"
-                    elif param != poped[0]:
-                        print(f"mismatch {param} != {poped[0]}")
-                        exit(1)
-                    else:
-                        buffer += f"{poped[0]} {poped[1]}"
-
-                    first = False
-                self.output += buffer + ")\n"
+        if len(func["params"]) == 0:
+            if func["return_type"] != "void":
+                next_var = self.next_var()
+                self.output += f"%{next_var} = "
+                self.history.append((func["return_type"], f"%{next_var}"))
+            self.output += f"call {func['return_type']} @{func['name']}()\n"
         else:
-            print("Not implemented return type")
-            exit()
+            next_var = 0
+            if func["return_type"] != "void":
+                next_var = self.next_var()
+                buffer += f"%{next_var} = "
+            buffer += f"call {func['return_type']} @{func['name']}(" #)
+            first = True
+            for param in func["params"]:
+                if not first:
+                    buffer += ", "
+
+                poped = self.history.pop()
+                if poped[0] == "-str-":
+                    new_var = self.next_var()
+                    size = poped[2]
+                    self.output += f"%{new_var} = getelementptr [{size} x i8],[{size} x i8]* @.str{poped[1]}, i64 0, i64 0\n"
+                    buffer += f"i8* %{new_var}"
+                elif param != poped[0]:
+                    print(f"mismatch {param} != {poped[0]}")
+                    exit(1)
+                else:
+                    buffer += f"{poped[0]} {poped[1]}"
+
+                first = False
+            if func["return_type"] != "void":
+                self.history.append((func["return_type"], f"%{next_var}"))
+            self.output += buffer + ")\n"
+
+    def parse_variable_declare(self):
+        # only works for arrays
+        name = self.history.pop()[1]
+        size = self.history.pop()[1]
+        arr_type = self.history.pop()[1][1:]
+
+        self.variables.append((f"[{size} x {arr_type}]", name, name))
+
+        self.output += f"%{name} = alloca [{size} x {arr_type}]\n"
+
+    def array_at(self):
+        name  = self.history.pop()[1][1:]
+        index = self.history.pop()
+
+        found = False
+        for var in self.variables:
+            if var[1] == name:
+                next_var = self.next_var()
+                self.output += f"%{next_var} = getelementptr {var[0]}, {var[0]}* %{var[1]}, i64 0, {index[0]} {index[1]}\n"
+                self.history.append((f"{var[0].split('x')[1][1:-1]}*", f"%{next_var}"))
+                found = True
+        if not found:
+            print("Not found")
+            exit(1)
+
+    def parse_array_at_assign(self):
+        self.array_at()
+
+        dest = self.history.pop()
+        src  = self.history.pop()
+
+        self.output += f"store {dest[0][:-1]} {src[1]}, {dest[0]} {dest[1]}\n"
+
+    def parse_array_at_load(self):
+        self.array_at()
+
+        src = self.history.pop()
+
+        next_var = self.next_var()
+        self.output += f"%{next_var} = load {src[0][:-1]}, {src[0]} {src[1]}\n"
+        self.history.append((src[0][:-1], f"%{next_var}"))
+
+    def parse_as(self):
+        target = self.history.pop()
+        src = self.history.pop()
+
+        next_var = self.next_var()
+        self.output += f"%{next_var} = "
+        if int(target[1][2:]) > int(src[0][1:]):
+            self.output += "sext "
+        else:
+            self.output += "trunc "
+
+        self.output += f"{src[0]} {src[1]} to {target[1][1:]}\n"
+        self.history.append((target[1][1:], f"%{next_var}"))
 
     def next_var(self):
         self.var_i += 1
@@ -118,14 +206,33 @@ class Compilator:
             elif token == "_ret":
                 last = self.history.pop()
                 self.output += f"ret {last[0]} {last[1]}\n"
+            elif token == "_as":
+                self.parse_as()
             elif token.startswith("_"):
                 print(f"Unknown keyword '{token}'")
                 return
+            elif token == ":":
+                self.parse_variable_declare()
+            elif token.startswith(":"):
+                self.history.append(("-type-", token))
+            elif token == "@=":
+                self.parse_array_at_assign()
+            elif token == "@":
+                self.parse_array_at_load()
             elif token.startswith("\""):
                 self.parse_string_literal(split, token)
             elif token.isdigit():
                 #self.history.append(f"i32 {token}")
                 self.history.append(("i32", token))
+            elif token.startswith("$"):
+                found = False
+                for var in self.variables:
+                    if var[1] == token[1:]:
+                        self.history.append((var[0], f"%{var[2]}"))
+                        found = True
+                        break
+                if not found:
+                    self.history.append(("-var_name-", token[1:]))
             elif token == "+":
                 first  = self.history.pop()
                 second = self.history.pop()
