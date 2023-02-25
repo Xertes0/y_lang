@@ -1,0 +1,7 @@
+_proc
+i32 main()
+
+    5 4 + _ret
+
+_end
+
