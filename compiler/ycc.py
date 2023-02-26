@@ -128,10 +128,8 @@ class Compilator:
                 self.history.append((func["return_type"], f"%{next_var}"))
             self.output += f"call {func['return_type']} @{func['name']}()\n"
         else:
-            next_var = 0
             if func["return_type"] != "void":
-                next_var = self.next_var()
-                buffer += f"%{next_var} = "
+                buffer += "%<<TOREPLACE>> = "
             buffer += f"call {func['return_type']} @{func['name']}(" #)
             first = True
             for param in func["params"]:
@@ -152,7 +150,9 @@ class Compilator:
 
                 first = False
             if func["return_type"] != "void":
+                next_var = self.next_var()
                 self.history.append((func["return_type"], f"%{next_var}"))
+                buffer = buffer.replace("<<TOREPLACE>>", str(next_var))
             self.output += buffer + ")\n"
 
     def parse_variable_declare(self):

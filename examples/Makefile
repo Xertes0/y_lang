@@ -4,7 +4,11 @@ ASM = nasm
 LD  = ld
 
 LLC_FLAGS = -filetype=obj
-LD_FLAGS = ../libstd/std/*.o
+LD_FLAGS = \
+	../libstd/std/start.o \
+	../libstd/std/put.o \
+	../libstd/std/strlen.o \
+	../libstd/std/syswrite.o
 
 PYTHON3 = python3
 YCC = ../compiler/ycc.py
@@ -32,7 +36,7 @@ all: $(EXAMPLES)
 	$(LD) $< $(LD_FLAGS) -o $@
 
 clean:
-	rm -f $(EXAMPLES) ./*.o ./*.ll
+	rm -f ./*.bin ./*.o ./*.ll
 
 .PHONY: all clean
 .SECONDARY: $(EXAMPLES:.bin=.ll) $(EXAMPLES:.bin=.o)

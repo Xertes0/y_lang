@@ -1,3 +1,4 @@
+; include some functions from libstd ;
 @has "std/put"@
 
 ; main procedure returning 32 bit integer ;

@@ -1,0 +1,51 @@
+; not included in Makefile ;
+; link with ;
+; ld -dynamic-linker /lib64/ld-linux-x86-64.so.2 sdl2.o ../libstd/std/{put,strlen,syswrite}.o /usr/lib64/libSDL2.so /lib64/crt1.o /lib64/crti.o -lm -lc /lib64/crtn.o -o sdl2.bin ;
+
+@has "std/put"@
+
+_exists
+i32 SDL_Init(i32)
+
+_exists
+i8* SDL_CreateWindow(i8*, i32, i32, i32, i32, i32)
+
+_exists
+void SDL_UpdateWindowSurface(i8*)
+
+_exists
+void SDL_Delay(i32)
+
+_exists
+void SDL_DestroyWindow(i8*)
+
+_exists
+void SDL_Quit()
+
+_proc
+i32 main()
+
+    "SDL_Init\n\0" std_put_s
+
+    32 SDL_Init
+
+    "SDL_CreateWindow\n\0" std_put_s
+    :i8* $window :
+    4 800 600 805240832 805240832 "XDDD\0" SDL_CreateWindow $window =
+
+    "SDL_UpdateWindowSurface\n\0" std_put_s
+    $window * SDL_UpdateWindowSurface
+
+    "SDL_Delay 1000\n\0" std_put_s
+    1000 SDL_Delay
+
+    "Cleanup\n\0" std_put_s
+
+    $window * SDL_DestroyWindow
+    SDL_Quit
+
+    "Exit\n\0" std_put_s
+    0 _ret
+
+_end
+
