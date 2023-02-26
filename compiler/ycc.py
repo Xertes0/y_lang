@@ -278,7 +278,13 @@ class Compilator:
 
     def compile(self):
         split = iter(self.input.split())
+        in_commment = False
         for token in split:
+            if in_commment:
+                if token.endswith(";"):
+                    in_commment = False
+                continue
+
             if token == "_exists":
                 self.parse_exists(split)
             elif token == "_proc":
@@ -323,6 +329,10 @@ class Compilator:
             elif token.startswith("_"):
                 print(f"Unknown keyword '{token}'")
                 return
+            elif token.startswith(";"):
+                if not (token.endswith(";") and len(token) > 1):
+                    in_commment = True
+                continue
             elif token == ":":
                 self.parse_variable_declare()
             elif token.startswith(":"):

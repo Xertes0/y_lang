@@ -7,7 +7,10 @@ void std_put_i32(i32)
 _proc
 i32 main()
 
+    ; print number 42 ;
     42 std_put_i32
+
+    ; print new line character ;
     "\n\0" std_put_s
 
     0 _ret

@@ -1,10 +1,14 @@
 _exists
 void std_put_s(i8*)
 
+; main procedure returning 32 bit integer ;
 _proc
 i32 main()
 
+    ; pass string to function 'std_put_s' ;
     "Hello world!\n\0" std_put_s
+
+    ; return 0 from main ;
     0 _ret
 
 _end

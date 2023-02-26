@@ -2,10 +2,13 @@
 _proc
 i32 main()
 
+    ; declare variable 'a' of type i32 ;
     :i32 $a :
 
+    ; assign 10 to 'a' ;
     10 $a =
 
+    ; get 'a's value and return it ;
     $a * _ret
 
 _end

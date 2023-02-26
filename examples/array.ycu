@@ -2,10 +2,13 @@
 _proc
 i32 main()
 
+    ; declare array 'a' of 32 i8s ;
     :i8 32 $a :
 
+    ; assign number 120 at 3rd index ;
     120 3 $a @ =
 
+    ; get element at 3rd index, cast to i32, and return it ;
     3 $a @ * :i32 _as _ret
 
 _end
