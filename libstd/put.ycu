@@ -1,0 +1,31 @@
+_exists
+void std_puts(i8*, i32)
+
+_proc
+void std_put_i32(i32 $i_num)
+
+    :i32 $num :
+    $i_num $num =
+
+    :i8 32 $buff :
+    0 31 $buff @ =
+
+    :i32 $i :
+    31 $i =
+
+    _loop
+        0 $num * _eq _if _break _end
+
+        48 10 $num * _mod _add :i8 _as $i * $buff @ =
+        1 $i * _sub $i =
+
+        10 $num * _div $num =
+    _end
+
+    $i * 32 _sub
+    $i * $buff @
+    std_puts
+
+    :void _ret
+
+_end

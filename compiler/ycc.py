@@ -24,8 +24,12 @@ class Compilator:
     def name_and_params_from_split(self, split):
         name = next(split)
         params = []
-        if name.endswith(")"):
+        if name.endswith("()"):
             name = name[:-2]
+        elif name.endswith(")"):
+            splited = name.split("(") # )
+            name = splited[0]
+            params.append(splited[1][:-1])
         else:
             while (next_token := next(split, None)) != None:
                 name += " " + next_token
@@ -237,6 +241,24 @@ class Compilator:
     def parse_break(self):
         self.output += f"br label %loope{self.loop_history[-1]}\n"
 
+    def parse_arth_generic(self, inst):
+        first  = self.history.pop()
+        second = self.history.pop()
+        self.output += f"%{self.next_var()} = {inst} {first[0]} {first[1]}, {second[1]}\n"
+        self.history.append((first[0], f"%{self.var_i}"))
+
+    def parse_add(self):
+        self.parse_arth_generic("add")
+
+    def parse_sub(self):
+        self.parse_arth_generic("sub")
+
+    def parse_mod(self):
+        self.parse_arth_generic("srem")
+
+    def parse_div(self):
+        self.parse_arth_generic("sdiv")
+
     def next_var(self):
         self.var_i += 1
         return self.var_i
@@ -269,11 +291,22 @@ class Compilator:
                     return
             elif token == "_ret":
                 last = self.history.pop()
-                self.output += f"ret {last[0]} {last[1]}\n"
+                if last[0] == "-type-":
+                    self.output += f"ret {last[1][1:]}\n"
+                else:
+                    self.output += f"ret {last[0]} {last[1]}\n"
             elif token == "_as":
                 self.parse_as()
             elif token == "_eq":
                 self.parse_eq()
+            elif token == "_add":
+                self.parse_add()
+            elif token == "_sub":
+                self.parse_sub()
+            elif token == "_mod":
+                self.parse_mod()
+            elif token == "_div":
+                self.parse_div()
             elif token == "_if":
                 self.parse_if()
             elif token == "_else":
@@ -309,12 +342,6 @@ class Compilator:
                         break
                 if not found:
                     self.history.append(("-var_name-", token[1:]))
-            elif token == "+":
-                first  = self.history.pop()
-                second = self.history.pop()
-                self.output += f"%{self.next_var()} = add {first[0]} {first[1]}, {second[1]}\n"
-                #self.history.append(f"%{self.var_i}")
-                self.history.append((first[0], f"%{self.var_i}"))
             elif token == "!":
                 self.history = []
             else:

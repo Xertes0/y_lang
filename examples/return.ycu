@@ -1,7 +1,7 @@
 _proc
 i32 main()
 
-    5 4 + _ret
+    5 4 _add _ret
 
 _end
 

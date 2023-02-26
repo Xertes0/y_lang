@@ -4,7 +4,7 @@ ASM = nasm
 LD  = ld
 
 LLC_FLAGS = -filetype=obj
-LD_FLAGS = ../libstd/puts.o ../libstd/start.o
+LD_FLAGS = ../libstd/*.o
 
 PYTHON3 = python3
 YCC = ../compiler/ycc.py
@@ -15,7 +15,8 @@ EXAMPLES = \
 	array.bin \
 	variable.bin \
 	casting.bin \
-	if.bin
+	if.bin \
+	put_i32.bin
 
 all: $(EXAMPLES)
 
