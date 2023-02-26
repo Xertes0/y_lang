@@ -4,9 +4,9 @@ i32 main()
 
     :i8 32 $a :
 
-    120 3 $a @=
+    120 3 $a @ =
 
-    3 $a @ :i32 _as _ret
+    3 $a @ * :i32 _as _ret
 
 _end
 

@@ -131,16 +131,20 @@ class Compilator:
             self.output += buffer + ")\n"
 
     def parse_variable_declare(self):
-        # only works for arrays
         name = self.history.pop()[1]
-        size = self.history.pop()[1]
-        arr_type = self.history.pop()[1][1:]
+        tail = self.history.pop()
+        if tail[0] == "-type-":
+            var_type = tail[1][1:]
+            self.variables.append((f"{var_type}*", name, name))
+            self.output += f"%{name} = alloca {var_type}\n"
+        else:
+            size = tail[1]
+            arr_type = self.history.pop()[1][1:]
 
-        self.variables.append((f"[{size} x {arr_type}]", name, name))
+            self.variables.append((f"[{size} x {arr_type}]", name, name))
+            self.output += f"%{name} = alloca [{size} x {arr_type}]\n"
 
-        self.output += f"%{name} = alloca [{size} x {arr_type}]\n"
-
-    def array_at(self):
+    def parse_array_at(self):
         name  = self.history.pop()[1][1:]
         index = self.history.pop()
 
@@ -155,22 +159,18 @@ class Compilator:
             print("Not found")
             exit(1)
 
-    def parse_array_at_assign(self):
-        self.array_at()
-
+    def parse_assign(self):
         dest = self.history.pop()
         src  = self.history.pop()
 
         self.output += f"store {dest[0][:-1]} {src[1]}, {dest[0]} {dest[1]}\n"
 
-    def parse_array_at_load(self):
-        self.array_at()
-
-        src = self.history.pop()
+    def parse_deref(self):
+        ptr = self.history.pop()
 
         next_var = self.next_var()
-        self.output += f"%{next_var} = load {src[0][:-1]}, {src[0]} {src[1]}\n"
-        self.history.append((src[0][:-1], f"%{next_var}"))
+        self.output += f"%{next_var} = load {ptr[0][:-1]}, {ptr[0]} {ptr[1]}\n"
+        self.history.append((ptr[0][:-1], f"%{next_var}"))
 
     def parse_as(self):
         target = self.history.pop()
@@ -215,10 +215,12 @@ class Compilator:
                 self.parse_variable_declare()
             elif token.startswith(":"):
                 self.history.append(("-type-", token))
-            elif token == "@=":
-                self.parse_array_at_assign()
             elif token == "@":
-                self.parse_array_at_load()
+                self.parse_array_at()
+            elif token == "=":
+                self.parse_assign()
+            elif token == "*":
+                self.parse_deref()
             elif token.startswith("\""):
                 self.parse_string_literal(split, token)
             elif token.isdigit():
