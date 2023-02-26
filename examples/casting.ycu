@@ -1,0 +1,19 @@
+
+_proc
+i32 main()
+
+    :i32 $big :
+
+    59 $big =
+
+    :i8 $small :
+
+    $big * :i8 _as $small =
+
+    10 $small * + $small =
+
+    $small * :i32 _as $big =
+
+    $big * _ret
+
+_end
