@@ -1,5 +1,4 @@
-_exists
-void std_put_s(i8*)
+@has "std/put"@
 
 ; main procedure returning 32 bit integer ;
 _proc

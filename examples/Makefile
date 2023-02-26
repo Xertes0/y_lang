@@ -4,10 +4,12 @@ ASM = nasm
 LD  = ld
 
 LLC_FLAGS = -filetype=obj
-LD_FLAGS = ../libstd/*.o
+LD_FLAGS = ../libstd/std/*.o
 
 PYTHON3 = python3
 YCC = ../compiler/ycc.py
+
+STD_PATH = ../libstd/
 
 EXAMPLES = \
 	return.bin \
@@ -21,7 +23,7 @@ EXAMPLES = \
 all: $(EXAMPLES)
 
 %.ll: %.ycu
-	$(PYTHON3) $(YCC) $< $@
+	$(PYTHON3) $(YCC) $< $(STD_PATH)
 
 %.o: %.ll
 	$(LLC) $(LLC_FLAGS) $< -o $@

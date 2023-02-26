@@ -1,9 +1,7 @@
-_exists
-void std_syswrite(i8*, i32)
+@has "std/strlen"@
+@has "std/syswrite"@
 
-_exists
-i32 std_strlen(i8*)
-
+_expose
 _proc
 void std_put_s(i8* $str)
 
@@ -13,6 +11,7 @@ void std_put_s(i8* $str)
 
 _end
 
+_expose
 _proc
 void std_put_i32(i32 $i_num)
 

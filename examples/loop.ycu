@@ -1,5 +1,4 @@
-_exists
-void std_puts(i8*, i32)
+@has "std/put"@
 
 _proc
 i32 main()

@@ -1,6 +1,6 @@
-_exists
-void std_syswrite(i8*, i32)
+@has "std/syswrite"@
 
+_expose
 _proc
 i32 std_strlen(i8* $str)
 

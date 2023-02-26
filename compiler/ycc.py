@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
+import os
+from os.path import isfile
 import sys
+
+search_paths = ["."]
 
 class Compilator:
     def __init__(self, input):
@@ -17,6 +21,8 @@ class Compilator:
         self.loop_history = []
         self.end_history = []
         self.last_token = ""
+        self.expose = False
+        self.expose_list = []
 
     def get_output(self):
         return self.output
@@ -77,6 +83,15 @@ class Compilator:
         self.output += f"define {return_type} @{name}({parm_str}) {{\n" # }}
         self.var_i += 1
         self.end_history.append("proc")
+
+        if self.expose:
+            self.expose = False
+            param_str = "(" # )
+            for i in range(0, len(params)):
+                if i != 0:
+                    param_str += ", "
+                param_str += f"{params[i].split(' ')[0]}"
+            self.expose_list.append(("proc", f"_exists\n{return_type} {name}{param_str})\n"))
 
     def parse_string_literal(self, split, token):
         if token.endswith("\""):
@@ -264,6 +279,25 @@ class Compilator:
     def parse_div(self):
         self.parse_arth_generic("sdiv")
 
+    def parse_special(self, special):
+        args = special[1:-1].split()
+        if args[0] == "has":
+            path = args[1][1:-1] + ".ypu"
+            for search in search_paths:
+                joined = os.path.join(search, path)
+                if os.path.isfile(joined):
+                    with open(joined, "r") as f:
+                        bak_input = self.input
+                        self.input = f.read()
+                        self.compile()
+                        self.input = bak_input
+                        return
+            print(f"Could not find \"{path}\"")
+            exit(1)
+        else:
+            print(f"Unknown special: {args[0]}")
+            exit(1)
+
     def next_var(self):
         self.var_i += 1
         return self.var_i
@@ -279,16 +313,28 @@ class Compilator:
     def compile(self):
         split = iter(self.input.split())
         in_commment = False
+        in_special = False
+        special = ""
         for token in split:
             if in_commment:
                 if token.endswith(";"):
                     in_commment = False
                 continue
 
+            if in_special:
+                special += " "
+                special += token
+                if token.endswith("@"):
+                    in_special = False
+                    self.parse_special(special)
+                continue
+
             if token == "_exists":
                 self.parse_exists(split)
             elif token == "_proc":
                 self.parse_proc(split)
+            elif token == "_expose":
+                self.expose = True
             elif token == "_end":
                 last = self.end_history.pop()
                 if last == "proc":
@@ -339,6 +385,10 @@ class Compilator:
                 self.history.append(("-type-", token))
             elif token == "@":
                 self.parse_array_at()
+            elif token.startswith("@"):
+                in_special = True
+                special = token
+                continue
             elif token == "=":
                 self.parse_assign()
             elif token == "*":
@@ -377,16 +427,22 @@ class Compilator:
 
 def print_usage():
     print("Usage: ")
-    print("    ./ycc.py <input> <output>")
+    print("    ./ycc.py <input> <libstd_path>")
 
 if __name__ == "__main__":
     if(len(sys.argv) < 3):
         print_usage()
         exit(1)
 
+    search_paths.append(sys.argv[2])
+
     input = open(sys.argv[1], "r").read()
     comp = Compilator(input)
     comp.compile()
-    with open(sys.argv[2], "w") as output:
+    with open(sys.argv[1][:-3] + "ll", "w") as output:
         output.write(comp.get_output())
+    if len(comp.expose_list) != 0:
+        with open(sys.argv[1][:-3] + "ypu", "w") as output:
+            for expose in comp.expose_list:
+                output.write(expose[1])
 

@@ -1,2 +1,4 @@
-*.ll
-*.o
+**/*.ll
+**/*.o
+**/*.ypu
+!std/syswrite.ypu
