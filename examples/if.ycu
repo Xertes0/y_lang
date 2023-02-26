@@ -1,0 +1,16 @@
+
+_proc
+i32 main()
+
+    :i32 $a :
+
+    5 5 _eq
+    _if
+        20 $a =
+    _else
+        10 $a =
+    _endif
+
+    $a * _ret
+
+_end

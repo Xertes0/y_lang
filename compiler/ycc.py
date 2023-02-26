@@ -12,6 +12,8 @@ class Compilator:
         self.string_i = 0
         self.declared = []
         self.variables = []
+        self.if_i = 0
+        self.if_history = []
 
     def get_output(self):
         return self.output
@@ -186,6 +188,35 @@ class Compilator:
         self.output += f"{src[0]} {src[1]} to {target[1][1:]}\n"
         self.history.append((target[1][1:], f"%{next_var}"))
 
+    def parse_eq(self):
+        a = self.history.pop()
+        b = self.history.pop()
+        next_var = self.next_var()
+        self.output += f"%{next_var} = icmp eq {a[0]} {a[1]}, {b[1]}\n"
+        self.history.append(("i1", f"%{next_var}"))
+
+    def parse_if(self):
+        cond = self.history.pop()
+        next_if = self.next_if()
+        self.output += f"br {cond[0]} {cond[1]}, label %if{next_if}, label %ife{next_if}\n"
+        self.if_history.append((False, next_if))
+        self.output += f"if{next_if}:\n"
+
+    def parse_ifelse(self):
+        self.output += f"br label %ifend{self.if_i}\n"
+        self.output += f"ife{self.if_i}:\n"
+        poped = self.if_history.pop()
+        self.if_history.append((True, poped[1]))
+
+    def parse_endif(self):
+        suffix = "e"
+        if self.if_history[-1][0]:
+            suffix = "end"
+        self.output += f"br label %if{suffix}{self.if_i}\n"
+        self.output += f"if{suffix}{self.if_i}:\n"
+        self.if_i -= 1
+        self.if_history.pop()
+
     def next_var(self):
         self.var_i += 1
         return self.var_i
@@ -193,6 +224,10 @@ class Compilator:
     def next_string(self):
         self.string_i += 1
         return self.string_i
+
+    def next_if(self):
+        self.if_i += 1
+        return self.if_i
 
     def compile(self):
         split = iter(self.input.split())
@@ -208,6 +243,14 @@ class Compilator:
                 self.output += f"ret {last[0]} {last[1]}\n"
             elif token == "_as":
                 self.parse_as()
+            elif token == "_eq":
+                self.parse_eq()
+            elif token == "_if":
+                self.parse_if()
+            elif token == "_else":
+                self.parse_ifelse()
+            elif token == "_endif":
+                self.parse_endif()
             elif token.startswith("_"):
                 print(f"Unknown keyword '{token}'")
                 return

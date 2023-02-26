@@ -9,7 +9,13 @@ LD_FLAGS = ../libstd/puts.o ../libstd/start.o
 PYTHON3 = python3
 YCC = ../compiler/ycc.py
 
-EXAMPLES = return.bin hello_world.bin array.bin variable.bin casting.bin
+EXAMPLES = \
+	return.bin \
+	hello_world.bin \
+	array.bin \
+	variable.bin \
+	casting.bin \
+	if.bin
 
 all: $(EXAMPLES)
 
