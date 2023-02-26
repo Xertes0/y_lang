@@ -1,0 +1,24 @@
+_exists
+void std_syswrite(i8*, i32)
+
+_proc
+i32 std_strlen(i8* $str)
+
+    :i32 $len :
+    0 $len =
+
+    _loop
+        0 :i8 _as
+        $len * $str @ *
+        _eq
+        _if
+            $len * _ret
+        _else
+            1 $len * _add $len =
+        _end
+    _end
+
+    0 _ret
+
+_end
+

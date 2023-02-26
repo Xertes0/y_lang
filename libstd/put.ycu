@@ -1,5 +1,17 @@
 _exists
-void std_puts(i8*, i32)
+void std_syswrite(i8*, i32)
+
+_exists
+i32 std_strlen(i8*)
+
+_proc
+void std_put_s(i8* $str)
+
+    $str std_strlen $str std_syswrite
+
+    :void _ret
+
+_end
 
 _proc
 void std_put_i32(i32 $i_num)
@@ -24,7 +36,7 @@ void std_put_i32(i32 $i_num)
 
     $i * 32 _sub
     $i * $buff @
-    std_puts
+    std_syswrite
 
     :void _ret
 

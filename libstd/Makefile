@@ -9,7 +9,8 @@ ASM_FLAGS = -felf64
 LD_FLAGS =
 
 YC_SOURCES = \
-	put.ycu
+	put.ycu \
+	strlen.ycu
 
 YC_OBJECTS = $(YC_SOURCES:.ycu=.ll)
 
@@ -20,7 +21,7 @@ LL_OBJECTS = $(LL_SOURCES:.ll=.o)
 
 ASM_SOURCES = \
 	start.asm \
-	puts.asm \
+	syswrite.asm \
 
 ASM_OBJECTS = $(ASM_SOURCES:.asm=.o)
 
@@ -41,6 +42,6 @@ all: $(ASM_OBJECTS) $(LL_OBJECTS) $(YC_OBJECTS)
 #	$(LD) $^ -o $@ $(LD_FLAGS)
 
 clean:
-	rm -f $(EXE) $(LL_OBJECTS) $(ASM_OBJECTS)
+	rm -f $(EXE) $(LL_OBJECTS) $(ASM_OBJECTS) $(YC_OBJECTS)
 
 .PHONY: all clean

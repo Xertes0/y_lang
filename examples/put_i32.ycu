@@ -1,5 +1,5 @@
 _exists
-void std_puts(i8*, i32)
+void std_put_s(i8*)
 
 _exists
 void std_put_i32(i32)
@@ -8,7 +8,7 @@ _proc
 i32 main()
 
     42 std_put_i32
-    1 "\n" std_puts
+    "\n\0" std_put_s
 
     0 _ret
 

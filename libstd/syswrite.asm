@@ -1,6 +1,6 @@
 
-global std_puts
-std_puts:
+global std_syswrite
+std_syswrite:
 ;; rdi rsi rdx rcx r8 r9
     mov rdx, rsi
     mov rsi, rdi

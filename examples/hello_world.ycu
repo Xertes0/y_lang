@@ -1,10 +1,10 @@
 _exists
-void std_puts(i8*, i32)
+void std_put_s(i8*)
 
 _proc
 i32 main()
 
-    13 "Hello world!\n" std_puts
+    "Hello world!\n\0" std_put_s
     0 _ret
 
 _end

@@ -160,13 +160,17 @@ class Compilator:
 
         found = False
         for var in self.variables:
-            if var[1] == name:
-                next_var = self.next_var()
-                self.output += f"%{next_var} = getelementptr {var[0]}, {var[0]}* %{var[1]}, i64 0, {index[0]} {index[1]}\n"
-                self.history.append((f"{var[0].split('x')[1][1:-1]}*", f"%{next_var}"))
+            if str(var[2]) == name:
                 found = True
+                next_var = self.next_var()
+                if "x" in var[0]:
+                    self.output += f"%{next_var} = getelementptr {var[0]}, {var[0]}* %{var[2]}, i64 0, {index[0]} {index[1]}\n"
+                    self.history.append((f"{var[0].split('x')[1][1:-1]}*", f"%{next_var}"))
+                else:
+                    self.output += f"%{next_var} = getelementptr {var[0][:-1]}, {var[0]} %{var[2]}, {index[0]} {index[1]}\n"
+                    self.history.append((f"{var[0]}", f"%{next_var}"))
         if not found:
-            print("Not found")
+            print(f"@ Variable {name} not found")
             exit(1)
 
     def parse_assign(self):
@@ -213,7 +217,8 @@ class Compilator:
 
     def parse_ifelse(self):
         poped = self.if_history.pop()
-        self.output += f"br label %ifend{poped[1]}\n"
+        if not self.last_token in ["_break", "_end", "_ret"]:
+            self.output += f"br label %ifend{poped[1]}\n"
         self.output += f"ife{poped[1]}:\n"
         self.if_history.append((True, poped[1]))
 
