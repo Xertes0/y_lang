@@ -7,6 +7,7 @@ i32 main()
     59 $big =
 
     :i8 $small :
+    130:i8 $small =
 
     $big * :i8 _as $small =
 

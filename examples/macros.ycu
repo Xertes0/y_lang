@@ -1,0 +1,10 @@
+
+_macro
+52:i32 !RETURN_VALUE
+
+_proc
+i32 main()
+
+    !RETURN_VALUE _ret
+
+_end

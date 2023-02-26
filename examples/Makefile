@@ -22,7 +22,8 @@ EXAMPLES = \
 	variable.bin \
 	casting.bin \
 	if.bin \
-	put_i32.bin
+	put_i32.bin \
+	macros.bin
 
 all: $(EXAMPLES)
 

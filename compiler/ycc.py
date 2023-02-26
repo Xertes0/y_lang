@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-from os.path import isfile
 import sys
 
 search_paths = ["."]
@@ -23,6 +22,7 @@ class Compilator:
         self.last_token = ""
         self.expose = False
         self.expose_list = []
+        self.macros = []
 
     def get_output(self):
         return self.output
@@ -261,6 +261,16 @@ class Compilator:
     def parse_break(self):
         self.output += f"br label %loope{self.loop_history[-1]}\n"
 
+    def parse_macro(self, macro):
+        splited = macro.split(" !")
+        self.macros.append((splited[0].strip(), splited[1]))
+
+    def parse_use_macro(self, token):
+        for macro in self.macros:
+            if macro[1] == token[1:]:
+                splited = macro[0].split(":")
+                self.history.append((splited[1], splited[0]))
+
     def parse_arth_generic(self, inst):
         first  = self.history.pop()
         second = self.history.pop()
@@ -314,6 +324,8 @@ class Compilator:
         split = iter(self.input.split())
         in_commment = False
         in_special = False
+        in_macro = False
+        macro = ""
         special = ""
         for token in split:
             if in_commment:
@@ -327,6 +339,15 @@ class Compilator:
                 if token.endswith("@"):
                     in_special = False
                     self.parse_special(special)
+                continue
+
+            if in_macro:
+                macro += " "
+                macro += token
+
+                if token.startswith("!"):
+                    in_macro = False
+                    self.parse_macro(macro)
                 continue
 
             if token == "_exists":
@@ -372,6 +393,9 @@ class Compilator:
                 self.parse_loop()
             elif token == "_break":
                 self.parse_break()
+            elif token == "_macro":
+                in_macro = True
+                continue
             elif token.startswith("_"):
                 print(f"Unknown keyword '{token}'")
                 return
@@ -396,8 +420,10 @@ class Compilator:
             elif token.startswith("\""):
                 self.parse_string_literal(split, token)
             elif token.isdigit():
-                #self.history.append(f"i32 {token}")
                 self.history.append(("i32", token))
+            elif token.split(":")[0].isdigit():
+                splited = token.split(":")
+                self.history.append((splited[1], splited[0]))
             elif token.startswith("$"):
                 found = False
                 for var in self.variables:
@@ -407,8 +433,8 @@ class Compilator:
                         break
                 if not found:
                     self.history.append(("-var_name-", token[1:]))
-            elif token == "!":
-                self.history = []
+            elif token.startswith("!"):
+                self.parse_use_macro(token)
             else:
                 found = False
                 for declare in self.declared:
