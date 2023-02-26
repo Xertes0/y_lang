@@ -1,0 +1,18 @@
+_exists
+void std_puts(i8*, i32)
+
+_proc
+i32 main()
+
+    :i32 $a :
+    0 $a =
+
+    _loop
+        5 $a * _eq _if _break _end
+        17 "Hello from loop\n\0" std_puts
+        1 $a * + $a =
+    _end
+
+    0 _ret
+
+_end

@@ -9,7 +9,7 @@ i32 main()
         20 $a =
     _else
         10 $a =
-    _endif
+    _end
 
     $a * _ret
 

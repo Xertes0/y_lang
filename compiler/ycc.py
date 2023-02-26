@@ -12,8 +12,11 @@ class Compilator:
         self.string_i = 0
         self.declared = []
         self.variables = []
-        self.if_i = 0
+        self.label_i = 0
         self.if_history = []
+        self.loop_history = []
+        self.end_history = []
+        self.last_token = ""
 
     def get_output(self):
         return self.output
@@ -69,6 +72,7 @@ class Compilator:
 
         self.output += f"define {return_type} @{name}({parm_str}) {{\n" # }}
         self.var_i += 1
+        self.end_history.append("proc")
 
     def parse_string_literal(self, split, token):
         if token.endswith("\""):
@@ -189,33 +193,49 @@ class Compilator:
         self.history.append((target[1][1:], f"%{next_var}"))
 
     def parse_eq(self):
-        a = self.history.pop()
         b = self.history.pop()
+        a = self.history.pop()
         next_var = self.next_var()
         self.output += f"%{next_var} = icmp eq {a[0]} {a[1]}, {b[1]}\n"
         self.history.append(("i1", f"%{next_var}"))
 
     def parse_if(self):
         cond = self.history.pop()
-        next_if = self.next_if()
-        self.output += f"br {cond[0]} {cond[1]}, label %if{next_if}, label %ife{next_if}\n"
-        self.if_history.append((False, next_if))
-        self.output += f"if{next_if}:\n"
+        next_label = self.next_label()
+        self.output += f"br {cond[0]} {cond[1]}, label %if{next_label}, label %ife{next_label}\n"
+        self.if_history.append((False, next_label))
+        self.output += f"if{next_label}:\n"
+        self.end_history.append("if")
 
     def parse_ifelse(self):
-        self.output += f"br label %ifend{self.if_i}\n"
-        self.output += f"ife{self.if_i}:\n"
         poped = self.if_history.pop()
+        self.output += f"br label %ifend{poped[1]}\n"
+        self.output += f"ife{poped[1]}:\n"
         self.if_history.append((True, poped[1]))
 
     def parse_endif(self):
         suffix = "e"
-        if self.if_history[-1][0]:
+        poped = self.if_history.pop()
+        if poped[0]:
             suffix = "end"
-        self.output += f"br label %if{suffix}{self.if_i}\n"
-        self.output += f"if{suffix}{self.if_i}:\n"
-        self.if_i -= 1
-        self.if_history.pop()
+        if not self.last_token in ["_break", "_end"]:
+            self.output += f"br label %if{suffix}{poped[1]}\n"
+        self.output += f"if{suffix}{poped[1]}:\n"
+
+    def parse_loop(self):
+        next_label = self.next_label()
+        self.output += f"br label %loop{next_label}\n"
+        self.output += f"loop{next_label}:\n"
+        self.end_history.append("loop")
+        self.loop_history.append(next_label)
+
+    def parse_endloop(self):
+        poped = self.loop_history.pop()
+        self.output += f"br label %loop{poped}\n"
+        self.output += f"loope{poped}:\n"
+
+    def parse_break(self):
+        self.output += f"br label %loope{self.loop_history[-1]}\n"
 
     def next_var(self):
         self.var_i += 1
@@ -225,9 +245,9 @@ class Compilator:
         self.string_i += 1
         return self.string_i
 
-    def next_if(self):
-        self.if_i += 1
-        return self.if_i
+    def next_label(self):
+        self.label_i += 1
+        return self.label_i
 
     def compile(self):
         split = iter(self.input.split())
@@ -237,7 +257,16 @@ class Compilator:
             elif token == "_proc":
                 self.parse_proc(split)
             elif token == "_end":
-                self.output += "}\n"
+                last = self.end_history.pop()
+                if last == "proc":
+                    self.output += "}\n"
+                elif last == "if":
+                    self.parse_endif()
+                elif last == "loop":
+                    self.parse_endloop()
+                else:
+                    print(f"Unknown end history {last}")
+                    return
             elif token == "_ret":
                 last = self.history.pop()
                 self.output += f"ret {last[0]} {last[1]}\n"
@@ -249,8 +278,10 @@ class Compilator:
                 self.parse_if()
             elif token == "_else":
                 self.parse_ifelse()
-            elif token == "_endif":
-                self.parse_endif()
+            elif token == "_loop":
+                self.parse_loop()
+            elif token == "_break":
+                self.parse_break()
             elif token.startswith("_"):
                 print(f"Unknown keyword '{token}'")
                 return
@@ -297,9 +328,10 @@ class Compilator:
                     print(f"Unknown token '{token}'")
                     return
 
+            self.last_token = token
+
         for lit in self.string_literals:
             self.output += f"@.str{lit[0]} = private unnamed_addr constant [{lit[2]} x i8] c\"{lit[1]}\"\n"
-        print("End")
 
 def print_usage():
     print("Usage: ")
