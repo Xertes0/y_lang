@@ -1,12 +1,9 @@
 
 _proc
 main
-    _proc neseted
-    do_smth
-        3 5 _add
-        _ret
-    _end
+    2 5 _add
+    5 _add
 
-    0 _ret
+    _ret
 _end
 

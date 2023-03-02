@@ -11,7 +11,7 @@ LD_FLAGS= \
 EXE=yc
 
 SOURCES= \
-	ast.c token.c yc.c
+	ast.c token.c llvm.c yc.c
 
 OBJECTS=$(SOURCES:.c=.o)
 
