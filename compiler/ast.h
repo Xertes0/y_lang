@@ -9,6 +9,7 @@ enum ast_type
     AST_PROC,
     AST_NUMBER,
     AST_RET,
+    AST_ARTH,
 };
 
 struct ast_proc
@@ -29,14 +30,21 @@ struct ast_ret
     struct ast_base *value;
 };
 
+struct ast_arth
+{
+    struct ast_base *target;
+    struct ast_base *other;
+};
+
 struct ast_base
 {
     enum ast_type type;
     union
     {
-        struct ast_proc    proc_data;
-        struct ast_number  number_data;
-        struct ast_ret     ret_data;
+        struct ast_proc   proc_data;
+        struct ast_number number_data;
+        struct ast_ret    ret_data;
+        struct ast_arth   arth_data;
     };
 };
 

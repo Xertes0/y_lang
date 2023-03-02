@@ -1,5 +1,6 @@
 #include "ast.h"
 
+#include <assert.h>
 #include <ctype.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -39,6 +40,8 @@ size_t build_ast_base(
                 token_i += 2 + token_parsed;
                 *base_count += 1;
             } else if(strcmp(token_str, "_ret") == 0) {
+                assert(hist_count >= 1);
+
                 base[*base_count].type = AST_RET;
                 base[*base_count].ret_data.value = malloc(sizeof(struct ast_base));
                 *base[*base_count].ret_data.value = hist[--hist_count];
@@ -46,6 +49,19 @@ size_t build_ast_base(
             } else if(strcmp(token_str, "_end") == 0) {
                 free(hist);
                 return token_i;
+            } else if(strcmp(token_str, "_add") == 0) {
+                assert(hist_count >= 2);
+
+                struct ast_base ast;
+                ast.type = AST_ARTH;
+
+                ast.arth_data.target = malloc(sizeof(struct ast_base));
+                ast.arth_data.other  = malloc(sizeof(struct ast_base));
+
+                *ast.arth_data.target = hist[--hist_count];
+                *ast.arth_data.other  = hist[--hist_count];
+
+                hist[hist_count++] = ast;
             } else {
                 fprintf(stderr, "Unknown keyword %s\n", token_str);
                 exit(1);
@@ -79,11 +95,21 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
         {
             free(bases[base_i].proc_data.name);
             destroy_ast(bases[base_i].proc_data.bases, bases[base_i].proc_data.base_count);
+
             break;
         }
         case AST_RET:
         {
-            free(bases[base_i].ret_data.value);
+            destroy_ast(bases[base_i].ret_data.value, 1);
+
+            break;
+        }
+        case AST_ARTH:
+        {
+            destroy_ast(bases[base_i].arth_data.target, 1);
+            destroy_ast(bases[base_i].arth_data.other, 1);
+
+            break;
         }
         case AST_NUMBER:
             break;
@@ -105,17 +131,28 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         {
             printf("proc %s\n", bases[base_i].proc_data.name);
             print_ast_bases(bases[base_i].proc_data.bases, bases[base_i].proc_data.base_count, indent+2);
+
             break;
         }
         case AST_NUMBER:
         {
             printf("number %i\n", bases[base_i].number_data.value);
+
             break;
         }
         case AST_RET:
         {
             printf("ret\n");
             print_ast_bases(bases[base_i].ret_data.value, 1, indent+2);
+
+            break;
+        }
+        case AST_ARTH:
+        {
+            printf("arth\n");
+            print_ast_bases(bases[base_i].arth_data.target, 1, indent+2);
+            print_ast_bases(bases[base_i].arth_data.other, 1, indent+2);
+
             break;
         }
             break;
