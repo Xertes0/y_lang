@@ -1,0 +1,11 @@
+
+_proc
+main
+    _proc neseted
+    do_smth
+        25 _ret
+    _end
+
+    0 _ret
+_end
+
