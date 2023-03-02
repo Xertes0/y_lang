@@ -1,9 +1,15 @@
 
-_proc
-main
-    2 5 _add
-    5 _add
+@do_smth
+[ :i32 $b
+  :i32 $a ]
+_begin
+    0 _ret
+_end
 
-    _ret
+@main :i32
+_begin
+    2 3 @do_smth
+
+    0 _ret
 _end
 

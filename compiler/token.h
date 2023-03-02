@@ -5,9 +5,12 @@
 enum token_type
 {
     TOKEN_KEYWORD,
-    TOKEN_INDENTIFIER,
+    TOKEN_FUNCTION,
     TOKEN_NUMBER,
     TOKEN_TYPE,
+    TOKEN_VAR,
+    TOKEN_BEGIN,
+    TOKEN_END,
 };
 
 struct token

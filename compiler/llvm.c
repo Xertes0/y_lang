@@ -81,6 +81,10 @@ void generate_llvm(
 
             break;
         }
+        case AST_CALL:
+        {
+            break;
+        }
         case AST_ARTH:
         case AST_NUMBER:
             assert(0);

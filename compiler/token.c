@@ -21,11 +21,20 @@ parse_token_type(const char *str)
         return TOKEN_KEYWORD;
     } else if(*str == ':') {
         return TOKEN_TYPE;
+    } else if(*str == '$') {
+        return TOKEN_VAR;
+    } else if(*str == '@') {
+        return TOKEN_FUNCTION;
+    } else if(*str == '[') {
+        return TOKEN_BEGIN;
+    } else if(*str == ']') {
+        return TOKEN_END;
     } else if(isdigit(*str)) {
-        // TODO do not assume
+        // TODO type
         return TOKEN_NUMBER;
     } else {
-        return TOKEN_INDENTIFIER;
+        fprintf(stderr, "Unknown token type %s\n", str);
+        exit(1);
     }
 }
 
