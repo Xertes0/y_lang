@@ -11,6 +11,8 @@ enum token_type
     TOKEN_VAR,
     TOKEN_BEGIN,
     TOKEN_END,
+    TOKEN_SEP,
+    TOKEN_DISC,
 };
 
 struct token

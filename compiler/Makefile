@@ -10,10 +10,13 @@ LD_FLAGS= \
 
 EXE=yc
 
+THRID_SOURCES= \
+	./third-party/sc/map/sc_map.c
+
 SOURCES= \
 	ast.c token.c llvm.c yc.c
 
-OBJECTS=$(SOURCES:.c=.o)
+OBJECTS=$(SOURCES:.c=.o) $(THRID_SOURCES:.c=.o)
 
 all: yc
 

@@ -25,7 +25,7 @@ size_t build_ast_base(
         case TOKEN_KEYWORD:
         {
             if(strcmp(token_str, "_ret") == 0) {
-                assert(hist_count >= 0);
+                assert(hist_count >= 1);
 
                 base[*base_count].type = AST_RET;
                 base[*base_count].ret_data.value = malloc(sizeof(struct ast_base));
@@ -69,16 +69,42 @@ size_t build_ast_base(
         {
             if(tokens->type == TOKEN_KEYWORD) {
                 // Function call
-                base[*base_count].type = AST_CALL;
-                size_t name_len = strlen(tokens[token_i].str);
-                base[*base_count].call_data.name = malloc(name_len * sizeof(char));
-                strcpy(base[*base_count].call_data.name, tokens[token_i].str+1);
+                struct ast_call data;
 
-                *base_count += 1;
+                size_t name_len = strlen(tokens[token_i].str);
+                data.name = malloc(name_len * sizeof(char));
+                strcpy(data.name, tokens[token_i].str+1);
+
+                if(hist_count != 0 && hist[hist_count - 1].type != AST_SEP) {
+                    data.args = malloc(hist_count * sizeof(struct ast_base));
+
+                    size_t arg_count = 0;
+                    while(hist_count != 0) {
+                        if(hist[hist_count - 1].type == AST_SEP) { break; }
+                        data.args[arg_count++] = hist[--hist_count];
+                    }
+                    data.arg_count = arg_count;
+                } else {
+                    data.args = NULL;
+                    data.arg_count = 0;
+                }
+
+                if(tokens[token_i+1].type == TOKEN_DISC) {
+                    token_i += 1;
+
+                    base[*base_count].type = AST_CALL;
+                    base[*base_count].call_data = data;
+                    *base_count += 1;
+                } else {
+                    hist[hist_count].type = AST_CALL;
+                    hist[hist_count].call_data = data;
+                    hist_count += 1;
+                }
             } else {
                 // Function def
                 base[*base_count].type = AST_PROC;
                 struct ast_proc *data = &base[*base_count].proc_data;
+                *base_count += 1;
 
                 size_t name_len = strlen(tokens[token_i].str);
                 data->name = malloc(name_len * sizeof(char));
@@ -86,10 +112,23 @@ size_t build_ast_base(
 
                 token_i += 1;
                 if(tokens[token_i].type == TOKEN_TYPE) {
+                    // Has non-void return type
+                    size_t type_len = strlen(tokens[token_i].str);
+                    data->ret_type = malloc(type_len * sizeof(char));
+                    strcpy(data->ret_type, tokens[token_i].str+1);
+
+                    token_i += 1;
+                } else {
+                    // Has void return type
+                    data->ret_type = malloc(5 * sizeof(char));
+                    strcpy(data->ret_type, "void");
+                }
+
+                if(tokens[token_i].type != TOKEN_BEGIN) {
                     // Function with no arguments
                     data->vars = NULL;
                     data->var_count = 0;
-                } else if(tokens[token_i].type == TOKEN_BEGIN) {
+                } else {
                     // Function with arguments
                     token_i += 1;
                     data->vars = malloc(8 * sizeof(struct ast_var));
@@ -109,19 +148,9 @@ size_t build_ast_base(
                         data->var_count += 1;
                         token_i += 2;
                     }
-                }
 
-                if(tokens[token_i].type == TOKEN_TYPE) {
-                    // Has non-void return type
-                    size_t type_len = strlen(tokens[token_i].str);
-                    data->ret_type = malloc(type_len * sizeof(char));
-                    strcpy(data->ret_type, tokens[token_i].str+1);
-
+                    // TOKEN_END
                     token_i += 1;
-                } else {
-                    // Has void return type
-                    data->ret_type = malloc(5 * sizeof(char));
-                    strcpy(data->ret_type, "void");
                 }
 
                 size_t used_tokens =
@@ -131,15 +160,37 @@ size_t build_ast_base(
                                    &data->base_count);
 
                 token_i += used_tokens;
-                *base_count += 1;
             }
 
             break;
         }
+        case TOKEN_TYPE:
+        {
+            struct ast_base ast;
+            ast.type = AST_TYPE;
+
+            size_t value_len = strlen(tokens[token_i].str);
+            ast.vtype_data.value = malloc(value_len * sizeof(char));
+            strcpy(ast.vtype_data.value, tokens[token_i].str + 1);
+            hist[hist_count++] = ast;
+
+            break;
+        }
         case TOKEN_VAR:
+        {
+            struct ast_base ast;
+            ast.type = AST_RVAR;
+            size_t name_len = strlen(tokens[token_i].str);
+            ast.rvar_data.name = malloc(name_len * sizeof(char));
+            strcpy(ast.rvar_data.name, tokens[token_i].str + 1);
+            hist[hist_count++] = ast;
+
+            break;
+        }
+        case TOKEN_DISC:
         case TOKEN_BEGIN:
         case TOKEN_END:
-        case TOKEN_TYPE:
+        case TOKEN_SEP:
             break;
         }
     }
@@ -188,9 +239,23 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
         case AST_CALL:
         {
             free(bases[base_i].call_data.name);
+            destroy_ast(bases[base_i].call_data.args, bases[base_i].call_data.arg_count);
 
             break;
         }
+        case AST_TYPE:
+        {
+            free(bases[base_i].vtype_data.value);
+
+            break;
+        }
+        case AST_RVAR:
+        {
+            free(bases[base_i].rvar_data.name);
+
+            break;
+        }
+        case AST_SEP:
         case AST_NUMBER:
             break;
         }
@@ -209,7 +274,12 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         switch (bases[base_i].type) {
         case AST_PROC:
         {
-            printf("proc %s\n", bases[base_i].proc_data.name);
+            struct ast_proc *data = &bases[base_i].proc_data;
+            printf("proc %s ", data->name);
+            for(size_t arg_i=0;arg_i<data->var_count;++arg_i) {
+                printf("%s %s,", data->vars[arg_i].name, data->vars[arg_i].type);
+            }
+            printf("\n");
             print_ast_bases(bases[base_i].proc_data.bases, bases[base_i].proc_data.base_count, indent+2);
 
             break;
@@ -238,9 +308,23 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         case AST_CALL:
         {
             printf("call %s\n", bases[base_i].call_data.name);
+            print_ast_bases(bases[base_i].call_data.args, bases[base_i].call_data.arg_count, indent+2);
 
             break;
         }
+        case AST_TYPE:
+        {
+            printf("type %s\n", bases[base_i].vtype_data.value);
+
+            break;
+        }
+        case AST_RVAR:
+        {
+            printf("var %s\n", bases[base_i].rvar_data.name);
+
+            break;
+        }
+        case AST_SEP:
             break;
         }
     }

@@ -11,6 +11,9 @@ enum ast_type
     AST_RET,
     AST_ARTH,
     AST_CALL,
+    AST_SEP,
+    AST_TYPE,
+    AST_RVAR,
 };
 
 struct ast_number
@@ -34,6 +37,7 @@ struct ast_var
 {
     char *name;
     char *type;
+    size_t rep;
 };
 
 struct ast_proc
@@ -42,13 +46,26 @@ struct ast_proc
     char *ret_type;
 
     struct ast_var  *vars;
-    struct ast_base *bases;
-
     size_t var_count;
+
+    struct ast_base *bases;
     size_t base_count;
 };
 
 struct ast_call
+{
+    char *name;
+
+    struct ast_base  *args;
+    size_t arg_count;
+};
+
+struct ast_vtype
+{
+    char *value;
+};
+
+struct ast_rvar
 {
     char *name;
 };
@@ -63,6 +80,8 @@ struct ast_base
         struct ast_ret    ret_data;
         struct ast_arth   arth_data;
         struct ast_call   call_data;
+        struct ast_vtype  vtype_data;
+        struct ast_rvar   rvar_data;
     };
 };
 

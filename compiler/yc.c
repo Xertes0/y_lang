@@ -6,10 +6,14 @@
 #include <string.h>
 
 #include "ast.h"
+#include "third-party/sc/map/sc_map.h"
 #include "token.h"
+#include "llvm.h"
 
 int main(int argc, char *argv[])
 {
+    (void)argc;
+
     //printf("Usage: \n");
     //printf("  yc <input_file> <output_file>\n");
 
@@ -33,7 +37,18 @@ int main(int argc, char *argv[])
 
     FILE *ll_out = fopen(argv[2], "w");
 
-    generate_llvm(bases, base_count, ll_out);
+    struct llvm_context ctx;
+    sc_map_init_sv(&ctx.indentifier_map, 0, 0);
+    ctx.var_count = 1;
+
+    generate_llvm(bases, base_count, &ctx, ll_out);
+
+    struct llvm_iden *iden;
+    sc_map_foreach_value(&ctx.indentifier_map, iden) {
+        free(iden);
+    }
+
+    sc_map_term_sv(&ctx.indentifier_map);
 
     fclose(ll_out);
 

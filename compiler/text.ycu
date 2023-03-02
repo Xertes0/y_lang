@@ -1,15 +1,28 @@
 
-@do_smth
+@do_nothing
+_begin
+    :void _ret
+_end
+
+@do_almost_smth
 [ :i32 $b
   :i32 $a ]
 _begin
-    0 _ret
+    $b $a _add
+    :void _ret
+_end
+
+@do_smth :i32
+[ :i32 $b
+  :i32 $a ]
+_begin
+    $b $a _add _ret
 _end
 
 @main :i32
 _begin
-    2 3 @do_smth
-
-    0 _ret
+    @do_nothing !
+    2 3 @do_almost_smth !
+    2 3 @do_smth _ret
 _end
 

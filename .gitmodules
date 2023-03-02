@@ -1,0 +1,3 @@
+[submodule "compiler/third-party/sc"]
+	path = compiler/third-party/sc
+	url = https://github.com/tezc/sc.git
