@@ -106,6 +106,12 @@ struct ast_put
     char *type;
 };
 
+struct ast_ass
+{
+    struct ast_base *value;
+    char *var_name;
+};
+
 struct ast_base
 {
     enum ast_type type;
@@ -121,6 +127,7 @@ struct ast_base
         struct ast_str    str_data;
         struct ast_if     if_data;
         struct ast_put    put_data;
+        struct ast_ass    ass_data;
     };
 };
 

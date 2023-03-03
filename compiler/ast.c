@@ -331,6 +331,23 @@ size_t build_ast_base(
             break;
         }
         case TOKEN_ASS:
+        {
+            struct ast_base ast;
+            ast.type = AST_ASS;
+
+            struct ast_base *var = &hist[--hist_count];
+            assert(var->type == AST_RVAR);
+            struct ast_base *value = &hist[--hist_count];
+
+            ast.ass_data.var_name = var->rvar_data.name;
+            ast.ass_data.value = malloc(sizeof(struct ast_base));
+            *ast.ass_data.value = *value;
+
+            base[*base_count] = ast;
+            *base_count += 1;
+
+            break;
+        }
         case TOKEN_AT:
         case TOKEN_BEGIN:
         case TOKEN_END:

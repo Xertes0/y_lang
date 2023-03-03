@@ -380,9 +380,13 @@ void generate_llvm(
             struct llvm_iden *var_map = malloc(sizeof(struct llvm_iden));
             var_map->type = AST_RVAR;
             var_map->var_data.name = put_data->var_name;
-            var_map->var_data.type = put_data->type;
+
+            var_map->var_data.type = malloc(32 * sizeof(char));
+            sprintf(var_map->var_data.type, "%s*", put_data->type);
+
             var_map->var_data.rep = malloc(32 * sizeof(char));
             sprintf(var_map->var_data.rep, "%%%s", put_data->var_name);
+
             sc_map_put_sv(
                 &ctx->indentifier_map,
                 put_data->var_name, var_map);
@@ -390,6 +394,30 @@ void generate_llvm(
             break;
         }
         case AST_ASS:
+        {
+            struct ast_ass *ass_data = &bases[base_i].ass_data;
+
+            struct ast_var *var_data =
+                &((struct llvm_iden*)
+                sc_map_get_sv(
+                    &ctx->indentifier_map,
+                    ass_data->var_name))->var_data;
+            if(!sc_map_found(&ctx->indentifier_map)) {
+                assert(0);
+            }
+
+            struct ast_value value = get_value_from_ast(
+                ass_data->value, ctx, stream);
+
+            fprintf(stream,
+                "store %s %s, %s %s\n",
+                value.type, value.rep,
+                var_data->type, var_data->rep);
+
+            free(value.rep);
+
+            break;
+        }
         case AST_AT:
         case AST_STR:
         case AST_RVAR:
