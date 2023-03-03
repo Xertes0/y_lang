@@ -9,6 +9,7 @@ _begin
 
     5 3 $arr , =
 
-    0 _ret
+    3 $arr , *  _ret
+
 _end
 

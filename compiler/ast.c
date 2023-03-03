@@ -367,6 +367,18 @@ size_t build_ast_base(
 
             break;
         }
+        case TOKEN_DEREF:
+        {
+            struct ast_base ast;
+            ast.type = AST_DEREF;
+
+            ast.deref_data.target = malloc(sizeof(struct ast_base));
+            *ast.deref_data.target = hist[--hist_count];
+
+            hist[hist_count++] = ast;
+
+            break;
+        }
         case TOKEN_BEGIN:
         case TOKEN_END:
         case TOKEN_SEP:

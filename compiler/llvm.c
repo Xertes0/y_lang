@@ -255,13 +255,41 @@ get_value_from_ast(
         target.type[type_len-1] = '*';
 
         sprintf(value.rep, "%%%zu", ctx->var_count);
-        value.type = target.type;
+        value.type = malloc(64 * sizeof(char));
+        strcpy(value.type, target.type);
         variable_to_ptr_str(&value.type);
 
         ctx->var_count += 1;
 
         free(target.rep);
         free(to_value.rep);
+
+        return value;
+    }
+    case AST_DEREF:
+    {
+        struct ast_deref *deref_data = &base->deref_data;
+
+        struct ast_value target = get_value_from_ast(
+            deref_data->target, ctx, stream);
+
+        size_t len = strlen(target.type);
+        target.type[len-1] = '\0';
+        fprintf(stream, "%%%zu = load %s",
+                ctx->var_count, target.type);
+
+        value.type = malloc(len);
+        strcpy(value.type, target.type);
+
+        target.type[len-1] = '*';
+        fprintf(stream, ", %s %s\n",
+                target.type, target.rep);
+
+        sprintf(value.rep, "%%%zu", ctx->var_count);
+
+        ctx->var_count += 1;
+
+        free(target.rep);
 
         return value;
     }

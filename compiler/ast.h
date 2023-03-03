@@ -19,6 +19,7 @@ enum ast_type
     AST_ASS,
     AST_PUT,
     AST_AT,
+    AST_DEREF,
 };
 
 struct ast_number
@@ -118,6 +119,11 @@ struct ast_at
     struct ast_base *target;
 };
 
+struct ast_deref
+{
+    struct ast_base *target;
+};
+
 struct ast_base
 {
     enum ast_type type;
@@ -135,6 +141,7 @@ struct ast_base
         struct ast_put    put_data;
         struct ast_ass    ass_data;
         struct ast_at     at_data;
+        struct ast_deref  deref_data;
     };
 };
 

@@ -39,6 +39,8 @@ parse_token_type(const char *str)
         return TOKEN_PUT;
     } else if(*str == ',') {
         return TOKEN_AT;
+    } else if(*str == '*') {
+        return TOKEN_DEREF;
     } else if(isdigit(*str)) {
         // TODO type
         return TOKEN_NUMBER;
