@@ -20,6 +20,17 @@ struct ast_value
     char *type;
 };
 
+void variable_to_ptr_str(char **o_str)
+{
+    char *str = *o_str;
+
+    size_t len = strlen(str);
+    str[len-1] = '\0';
+    str[len-2] = '*';
+
+    *o_str = strchr(str, 'x') + 2;
+}
+
 struct ast_value
 get_value_from_ast(
     struct ast_base *base,
@@ -221,10 +232,42 @@ get_value_from_ast(
 
         return value;
     }
+    case AST_AT:
+    {
+        struct ast_at *at_data = &base->at_data;
+
+        struct ast_value to_value =
+            get_value_from_ast(
+                at_data->value, ctx, stream);
+
+        struct ast_value target =
+            get_value_from_ast(
+                at_data->target, ctx, stream);
+
+        size_t type_len = strlen(target.type);
+        target.type[type_len-1] = '\0';
+
+        fprintf(stream, "%%%zu = getelementptr %s, %s* %s, i64 0, %s %s\n",
+                ctx->var_count,
+                target.type, target.type, target.rep,
+                to_value.type, to_value.rep);
+
+        target.type[type_len-1] = '*';
+
+        sprintf(value.rep, "%%%zu", ctx->var_count);
+        value.type = target.type;
+        variable_to_ptr_str(&value.type);
+
+        ctx->var_count += 1;
+
+        free(target.rep);
+        free(to_value.rep);
+
+        return value;
+    }
     case AST_IF:
     case AST_ASS:
     case AST_PUT:
-    case AST_AT:
     case AST_PROC:
     case AST_SEP:
     case AST_RET:
@@ -236,6 +279,7 @@ get_value_from_ast(
     // instead of 'return value;'
     fprintf(stderr, "Tried to get %i\n", base->type);
     assert(0);
+    exit(1);
 }
 
 void generate_llvm(
@@ -397,14 +441,8 @@ void generate_llvm(
         {
             struct ast_ass *ass_data = &bases[base_i].ass_data;
 
-            struct ast_var *var_data =
-                &((struct llvm_iden*)
-                sc_map_get_sv(
-                    &ctx->indentifier_map,
-                    ass_data->var_name))->var_data;
-            if(!sc_map_found(&ctx->indentifier_map)) {
-                assert(0);
-            }
+            struct ast_value target = get_value_from_ast(
+                    ass_data->target, ctx, stream);
 
             struct ast_value value = get_value_from_ast(
                 ass_data->value, ctx, stream);
@@ -412,9 +450,10 @@ void generate_llvm(
             fprintf(stream,
                 "store %s %s, %s %s\n",
                 value.type, value.rep,
-                var_data->type, var_data->rep);
+                target.type, target.rep);
 
             free(value.rep);
+            free(target.rep);
 
             break;
         }

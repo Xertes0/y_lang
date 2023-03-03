@@ -336,10 +336,11 @@ size_t build_ast_base(
             ast.type = AST_ASS;
 
             struct ast_base *var = &hist[--hist_count];
-            assert(var->type == AST_RVAR);
             struct ast_base *value = &hist[--hist_count];
 
-            ast.ass_data.var_name = var->rvar_data.name;
+            ast.ass_data.target = malloc(sizeof(struct ast_base));
+            *ast.ass_data.target = *var;
+
             ast.ass_data.value = malloc(sizeof(struct ast_base));
             *ast.ass_data.value = *value;
 
@@ -349,6 +350,23 @@ size_t build_ast_base(
             break;
         }
         case TOKEN_AT:
+        {
+            struct ast_base ast;
+            ast.type = AST_AT;
+
+            struct ast_base *target = &hist[--hist_count];
+            struct ast_base *value = &hist[--hist_count];
+
+            ast.at_data.target = malloc(sizeof(struct ast_base));
+            *ast.at_data.target = *target;
+
+            ast.at_data.value = malloc(sizeof(struct ast_base));
+            *ast.at_data.value = *value;
+
+            hist[hist_count++] = ast;
+
+            break;
+        }
         case TOKEN_BEGIN:
         case TOKEN_END:
         case TOKEN_SEP:

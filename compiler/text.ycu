@@ -7,7 +7,7 @@ _begin
 
     100 $var =
 
-    ; 5 3 $arr , = ;
+    5 3 $arr , =
 
     0 _ret
 _end

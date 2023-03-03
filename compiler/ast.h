@@ -109,7 +109,13 @@ struct ast_put
 struct ast_ass
 {
     struct ast_base *value;
-    char *var_name;
+    struct ast_base *target;
+};
+
+struct ast_at
+{
+    struct ast_base *value;
+    struct ast_base *target;
 };
 
 struct ast_base
@@ -128,6 +134,7 @@ struct ast_base
         struct ast_if     if_data;
         struct ast_put    put_data;
         struct ast_ass    ass_data;
+        struct ast_at     at_data;
     };
 };
 
