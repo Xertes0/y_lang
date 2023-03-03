@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     fclose(src);
 
     for(size_t token_i=0;token_i<token_count;++token_i) {
-        printf("%zu: %i - %s\n", token_i, tokens[token_i].type, tokens[token_i].str);
+        printf("%zu %zu,%zu: %i - %s\n", token_i, tokens[token_i].loc.line, tokens[token_i].loc.at, tokens[token_i].type, tokens[token_i].str);
     }
 
     struct ast_base *bases;

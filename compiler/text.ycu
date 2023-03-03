@@ -8,7 +8,7 @@ _end
 [ :i32 $b
   :i32 $a ]
 _begin
-    $b $a _add
+    $b $a _add !
     :void _ret
 _end
 
@@ -19,10 +19,16 @@ _begin
     $b $a _add _ret
 _end
 
+@std_put_i32
+[ :i32 ]
+
 @main :i32
 _begin
     @do_nothing !
     2 3 @do_almost_smth !
+
+    420 @std_put_i32 !
+
     2 3 @do_smth _ret
 _end
 

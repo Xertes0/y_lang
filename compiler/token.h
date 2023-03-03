@@ -15,10 +15,20 @@ enum token_type
     TOKEN_DISC,
 };
 
+struct location
+{
+    size_t line;
+    size_t at;
+};
+
+void print_error_at(struct location *loc, char const *msg);
+
 struct token
 {
     enum token_type type;
     char *str;
+
+    struct location loc;
 };
 
 void assert_token(struct token *token, enum token_type type);

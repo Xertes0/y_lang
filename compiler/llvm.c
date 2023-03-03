@@ -173,29 +173,47 @@ void generate_llvm(
                 &ctx->indentifier_map,
                 data->name, proc_map);
 
-            fprintf(stream, "define %s @%s(", data->ret_type, data->name);
+            int definition = data->bases != NULL;
+
+            fprintf(stream, "%s %s @%s(", definition?"define":"declare", data->ret_type, data->name);
 
             ctx->var_count = 0;
             for(size_t var_i=0;var_i<data->var_count;++var_i) {
-                fprintf(stream,"%c%s %%%zu", var_i>0?',':' ', data->vars[var_i].type, ctx->var_count++);
+                fprintf(stream, "%c%s ", var_i>0?',':' ', data->vars[var_i].type);
 
-                struct llvm_iden *var_map = malloc(sizeof(struct llvm_iden));
-                var_map->type = AST_RVAR;
-                var_map->var_data.type = data->vars[var_i].type;
-                //var_map->var_data.name = malloc(32 * sizeof(char));
-                //sprintf(var_map->var_data.name, "%zu", ctx->var_count-1);
-                var_map->var_data.name = data->vars[var_i].name;
-                var_map->var_data.rep = ctx->var_count-1;
+                if(definition) {
+                    fprintf(stream, "%%%zu", ctx->var_count++);
 
-                sc_map_put_sv(
-                        &ctx->indentifier_map,
-                        data->vars[var_i].name, var_map);
+                    struct llvm_iden *var_map = malloc(sizeof(struct llvm_iden));
+                    var_map->type = AST_RVAR;
+                    var_map->var_data.type = data->vars[var_i].type;
+                    //var_map->var_data.name = malloc(32 * sizeof(char));
+                    //sprintf(var_map->var_data.name, "%zu", ctx->var_count-1);
+                    var_map->var_data.name = data->vars[var_i].name;
+                    var_map->var_data.rep = ctx->var_count-1;
+
+                    sc_map_put_sv(
+                            &ctx->indentifier_map,
+                            data->vars[var_i].name, var_map);
+                }
             }
 
-            fprintf(stream, ")\n{\n");
-            ctx->var_count += 1;
-            generate_llvm(data->bases, data->base_count, ctx, stream);
-            fprintf(stream, "}\n");
+            fprintf(stream, ")\n");
+            if(definition) {
+                fprintf(stream, "{\n");
+                ctx->var_count += 1;
+                generate_llvm(data->bases, data->base_count, ctx, stream);
+                fprintf(stream, "}\n");
+
+                for(size_t var_i=0;var_i<data->var_count;++var_i) {
+                    struct llvm_iden *iden =
+                        sc_map_del_sv(
+                            &ctx->indentifier_map,
+                            data->vars[var_i].name);
+
+                    free(iden);
+                }
+            }
 
             break;
         }

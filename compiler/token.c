@@ -52,14 +52,21 @@ void tokenise(
     struct token *token_i = *tokens;
     char *token_str_i = NULL;
 
+    struct location curr_loc;
+    curr_loc.line = 1;
+    curr_loc.at   = 1;
+
     bool parsing_token = false;
 
     while(!feof(stream)) {
         char c = (char)getc(stream);
+
+        // Parsing
         if(!isgraph(c) && parsing_token) {
             // Finished reading the token
             *token_str_i++ = '\0';
             token_i->type = parse_token_type(token_i->str);
+            token_i->loc = curr_loc;
             token_i += 1;
             parsing_token = false;
         } else if(isgraph(c)) {
@@ -69,6 +76,14 @@ void tokenise(
             }
             parsing_token = true;
             *token_str_i++ = c;
+        }
+
+        // Location
+        if(c == '\n') {
+            curr_loc.line += 1;
+            curr_loc.at = 1;
+        } else {
+            curr_loc.at += 1;
         }
     }
 
@@ -81,5 +96,10 @@ void destroy_tokens(struct token *tokens, size_t token_count)
         free(tokens[token_i].str);
     }
     free(tokens);
+}
+
+void print_error_at(struct location *loc, const char *msg)
+{
+    fprintf(stderr, "ERROR at %zu,%zu: %s\n", loc->line, loc->at, msg);
 }
 

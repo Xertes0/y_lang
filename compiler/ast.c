@@ -8,6 +8,12 @@
 
 #include "token.h"
 
+enum
+{
+    DECLARATION,
+    DEFINITION,
+};
+
 size_t build_ast_base(
     struct token *tokens, size_t token_count,
     struct ast_base **o_bases, size_t *base_count)
@@ -25,15 +31,20 @@ size_t build_ast_base(
         case TOKEN_KEYWORD:
         {
             if(strcmp(token_str, "_ret") == 0) {
-                assert(hist_count >= 1);
+                if(hist_count < 1) {
+                    print_error_at(&tokens[token_i].loc, "No element in history to retrun");
+                    exit(1);
+                }
 
                 base[*base_count].type = AST_RET;
                 base[*base_count].ret_data.value = malloc(sizeof(struct ast_base));
                 *base[*base_count].ret_data.value = hist[--hist_count];
                 *base_count += 1;
             } else if(strcmp(token_str, "_end") == 0) {
+                assert(hist_count == 0);
                 free(hist);
-                return token_i;
+
+                return token_i+1;
             } else if(strcmp(token_str, "_add") == 0) {
                 assert(hist_count >= 2);
 
@@ -49,6 +60,11 @@ size_t build_ast_base(
                 hist[hist_count++] = ast;
             } else if(strcmp(token_str, "_begin") == 0) {
                 //assert(base[(*base_count)-1].type == AST_PROC);
+                if(token_i != 0) {
+                    printf("_begin not at begining.\nMy token_i: %zu | Root type: %i at %zu,%zu\n", token_i, tokens->type, tokens->loc.line, tokens->loc.at);
+                    print_error_at(&tokens[token_i].loc, "here");
+                    exit(1);
+                }
             } else {
                 fprintf(stderr, "Unknown keyword %s\n", token_str);
                 exit(1);
@@ -68,6 +84,7 @@ size_t build_ast_base(
         case TOKEN_FUNCTION:
         {
             if(tokens->type == TOKEN_KEYWORD) {
+                printf("%s is a function call\n", tokens[token_i].str);
                 // Function call
                 struct ast_call data;
 
@@ -101,7 +118,25 @@ size_t build_ast_base(
                     hist_count += 1;
                 }
             } else {
-                // Function def
+                // Function dec/def
+                int func_type = 100;
+                int function_found = 0;
+                for(size_t dec_i=token_i+1;dec_i<token_count;++dec_i) {
+                    if(tokens[dec_i].type == TOKEN_FUNCTION) {
+                        function_found = 1;
+                    }
+                    if(tokens[dec_i+1].type == TOKEN_KEYWORD) {
+                        if(function_found == 0) {
+                            func_type = DEFINITION;
+                        } else {
+                            func_type = DECLARATION;
+                        }
+                        break;
+                    }
+                }
+                assert(func_type != 100);
+                printf("%s is a function %s\n", tokens[token_i].str, func_type==DEFINITION?"definition":"declaration");
+
                 base[*base_count].type = AST_PROC;
                 struct ast_proc *data = &base[*base_count].proc_data;
                 *base_count += 1;
@@ -135,22 +170,39 @@ size_t build_ast_base(
                     data->var_count = 0;
                     struct ast_var *var_i = data->vars;
                     while(tokens[token_i].type != TOKEN_END) {
-                        assert_token(&tokens[token_i],   TOKEN_TYPE);
-                        assert_token(&tokens[token_i+1], TOKEN_VAR);
+                        assert_token(&tokens[token_i], TOKEN_TYPE);
+                        if(func_type == DEFINITION) {
+                            assert_token(&tokens[token_i+1], TOKEN_VAR);
+                        }
 
                         var_i->type = malloc(strlen(tokens[token_i].str));
-                        var_i->name = malloc(strlen(tokens[token_i+1].str));
+                        strcpy(var_i->type, tokens[token_i].str + 1);
+                        token_i += 1;
 
-                        strcpy(var_i->type, tokens[token_i].str   + 1);
-                        strcpy(var_i->name, tokens[token_i+1].str + 1);
+                        var_i->name = NULL;
+                        if(tokens[token_i].type == TOKEN_VAR) {
+                            var_i->name = malloc(strlen(tokens[token_i].str));
+                            strcpy(var_i->name, tokens[token_i].str + 1);
+                            token_i += 1;
+                        }
 
                         var_i += 1;
                         data->var_count += 1;
-                        token_i += 2;
                     }
 
-                    // TOKEN_END
+                    // SKIP TOKEN_END
+                    assert(tokens[token_i].type == TOKEN_END);
                     token_i += 1;
+                }
+
+                if(func_type == DECLARATION) {
+                    // Loop will increment it back
+                    token_i -= 1;
+                    data->bases = NULL;
+                    data->base_count = 0;
+                    break;
+                } else {
+                    assert(tokens[token_i].type == TOKEN_KEYWORD);
                 }
 
                 size_t used_tokens =
@@ -159,7 +211,8 @@ size_t build_ast_base(
                                    &data->bases,
                                    &data->base_count);
 
-                token_i += used_tokens;
+                // Loop will increment it back
+                token_i += used_tokens - 1;
             }
 
             break;
@@ -188,6 +241,13 @@ size_t build_ast_base(
             break;
         }
         case TOKEN_DISC:
+        {
+            //destroy_ast(&hist[--hist_count], 1);
+            hist_count -= 1;
+            printf("Memory leak.\n");
+
+            break;
+        }
         case TOKEN_BEGIN:
         case TOKEN_END:
         case TOKEN_SEP:
@@ -195,7 +255,9 @@ size_t build_ast_base(
         }
     }
 
+    assert(hist_count == 0);
     free(hist);
+
     return token_count;
 }
 
@@ -275,12 +337,20 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         case AST_PROC:
         {
             struct ast_proc *data = &bases[base_i].proc_data;
-            printf("proc %s ", data->name);
+
+            printf("%s %s %s ", data->bases==NULL?"decl":"proc", data->ret_type, data->name);
             for(size_t arg_i=0;arg_i<data->var_count;++arg_i) {
-                printf("%s %s,", data->vars[arg_i].name, data->vars[arg_i].type);
+                printf("%s ", data->vars[arg_i].type);
+
+                if(data->vars[arg_i].name != NULL) {
+                    printf("%s,", data->vars[arg_i].name);
+                }
             }
             printf("\n");
-            print_ast_bases(bases[base_i].proc_data.bases, bases[base_i].proc_data.base_count, indent+2);
+
+            if(data->bases != NULL) {
+                print_ast_bases(bases[base_i].proc_data.bases, bases[base_i].proc_data.base_count, indent+2);
+            }
 
             break;
         }
