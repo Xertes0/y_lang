@@ -33,6 +33,12 @@ parse_token_type(const char *str)
         return TOKEN_SEP;
     } else if(*str == '!') {
         return TOKEN_DISC;
+    } else if(*str == '=') {
+        return TOKEN_ASS;
+    } else if(*str == '.') {
+        return TOKEN_PUT;
+    } else if(*str == ',') {
+        return TOKEN_AT;
     } else if(isdigit(*str)) {
         // TODO type
         return TOKEN_NUMBER;

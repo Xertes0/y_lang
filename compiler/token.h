@@ -14,6 +14,9 @@ enum token_type
     TOKEN_SEP,
     TOKEN_DISC,
     TOKEN_STR,
+    TOKEN_ASS,
+    TOKEN_PUT,
+    TOKEN_AT,
 };
 
 struct location

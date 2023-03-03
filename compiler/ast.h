@@ -16,6 +16,9 @@ enum ast_type
     AST_RVAR,
     AST_STR,
     AST_IF,
+    AST_ASS,
+    AST_PUT,
+    AST_AT,
 };
 
 struct ast_number
@@ -48,7 +51,7 @@ struct ast_var
 {
     char *name;
     char *type;
-    size_t rep;
+    char *rep;
 };
 
 struct ast_proc
@@ -97,6 +100,12 @@ struct ast_if
     size_t false_count;
 };
 
+struct ast_put
+{
+    char *var_name;
+    char *type;
+};
+
 struct ast_base
 {
     enum ast_type type;
@@ -111,6 +120,7 @@ struct ast_base
         struct ast_rvar   rvar_data;
         struct ast_str    str_data;
         struct ast_if     if_data;
+        struct ast_put    put_data;
     };
 };
 

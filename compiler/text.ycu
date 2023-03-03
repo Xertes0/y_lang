@@ -1,51 +1,14 @@
-
-@do_nothing
-_begin
-    :void _ret
-_end
-
-@do_almost_smth
-[ :i32 $b
-  :i32 $a ]
-_begin
-    $b $a _add !
-    :void _ret
-_end
-
-@do_smth :i32
-[ :i32 $b
-  :i32 $a ]
-_begin
-    $b $a _add _ret
-_end
-
-@std_put_s
-[ :i8* ]
-
-@std_put_i32
-[ :i32 ]
-
-; this is a comment ;
 @main :i32
 _begin
-    @do_nothing !
-    2 3 @do_almost_smth !
 
-    "Hello world: " @std_put_s !
-    1234 @std_put_i32 !
-    "\n" @std_put_s !
+    :i32 $var .
 
-    1 5 _eq
-    _begin
-        "numbers are equal\n" @std_put_s !
-    _else
-        "numbers are not equal\n" @std_put_s !
-    _end
+    10:i32 $arr .
 
-    0 0 @do_smth _ret
+    ;100 $var =;
+
+    ;5 3 $arr , =;
+
+    0 _ret
 _end
-
-;
-    A long comment
-;
 

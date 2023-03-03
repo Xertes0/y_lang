@@ -304,6 +304,34 @@ size_t build_ast_base(
 
             break;
         }
+        case TOKEN_PUT:
+        {
+            struct ast_base ast;
+            ast.type = AST_PUT;
+
+            struct ast_base *var = &hist[--hist_count];
+            assert(var->type == AST_RVAR);
+            ast.put_data.var_name = var->rvar_data.name;
+
+            struct ast_base *type = &hist[--hist_count];
+            if(type->type == AST_TYPE) {
+                ast.put_data.type = type->vtype_data.value;
+            } else if(type->type == AST_NUMBER) {
+                ast.put_data.type = malloc(32 * sizeof(char));
+                sprintf(ast.put_data.type, "[%i x %s]",
+                        type->number_data.value,
+                        type->number_data.type);
+            } else {
+                assert(0);
+            }
+
+            base[*base_count] = ast;
+            *base_count += 1;
+
+            break;
+        }
+        case TOKEN_ASS:
+        case TOKEN_AT:
         case TOKEN_BEGIN:
         case TOKEN_END:
         case TOKEN_SEP:
@@ -390,7 +418,16 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 
             break;
         }
+        case AST_PUT:
+        {
+            struct ast_put *data = &bases[base_i].put_data;
+            free(data->type);
+
+            break;
+        }
         case AST_SEP:
+        case AST_ASS:
+        case AST_AT:
         case AST_NUMBER:
             break;
         }
@@ -495,6 +532,9 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
 
             break;
         }
+        case AST_PUT:
+        case AST_ASS:
+        case AST_AT:
         case AST_SEP:
             break;
         }

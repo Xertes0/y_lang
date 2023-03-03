@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ast.h"
 #include "third-party/sc/map/sc_map.h"
 
+#include "ast.h"
 #include "llvm.h"
 #include "token.h"
 
@@ -174,7 +174,7 @@ get_value_from_ast(
         }
 
         value.type = var->type;
-        sprintf(value.rep, "%%%zu", var->rep);
+        strcpy(value.rep, var->rep);
 
         return value;
     }
@@ -222,6 +222,9 @@ get_value_from_ast(
         return value;
     }
     case AST_IF:
+    case AST_ASS:
+    case AST_PUT:
+    case AST_AT:
     case AST_PROC:
     case AST_SEP:
     case AST_RET:
@@ -271,7 +274,8 @@ void generate_llvm(
                     //var_map->var_data.name = malloc(32 * sizeof(char));
                     //sprintf(var_map->var_data.name, "%zu", ctx->var_count-1);
                     var_map->var_data.name = data->vars[var_i].name;
-                    var_map->var_data.rep = ctx->var_count-1;
+                    var_map->var_data.rep = malloc(32 * sizeof(char));
+                    sprintf(var_map->var_data.rep, "%%%zu", ctx->var_count-1);
 
                     sc_map_put_sv(
                             &ctx->indentifier_map,
@@ -367,6 +371,26 @@ void generate_llvm(
 
             break;
         }
+        case AST_PUT:
+        {
+            struct ast_put *put_data = &bases[base_i].put_data;
+            fprintf(stream, "%%%s = alloca %s\n",
+                    put_data->var_name, put_data->type);
+
+            struct llvm_iden *var_map = malloc(sizeof(struct llvm_iden));
+            var_map->type = AST_RVAR;
+            var_map->var_data.name = put_data->var_name;
+            var_map->var_data.type = put_data->type;
+            var_map->var_data.rep = malloc(32 * sizeof(char));
+            sprintf(var_map->var_data.rep, "%%%s", put_data->var_name);
+            sc_map_put_sv(
+                &ctx->indentifier_map,
+                put_data->var_name, var_map);
+
+            break;
+        }
+        case AST_ASS:
+        case AST_AT:
         case AST_STR:
         case AST_RVAR:
         case AST_ARTH:
@@ -408,6 +432,9 @@ void destroy_llvm_context(struct llvm_context *ctx)
 {
     struct llvm_iden *iden;
     sc_map_foreach_value(&ctx->indentifier_map, iden) {
+        if(iden->type == AST_RVAR) {
+            free(iden->var_data.rep);
+        }
         free(iden);
     }
 
