@@ -8,6 +8,21 @@
 
 #include "token.h"
 
+#define DEF_ARTH(TYPE) \
+    assert(hist_count >= 2); \
+\
+    struct ast_base ast; \
+    ast.type = AST_ARTH; \
+    ast.arth_data.type = TYPE; \
+\
+    ast.arth_data.target = malloc(sizeof(struct ast_base)); \
+    ast.arth_data.other  = malloc(sizeof(struct ast_base)); \
+\
+    *ast.arth_data.target = hist[--hist_count]; \
+    *ast.arth_data.other  = hist[--hist_count]; \
+\
+    hist[hist_count++] = ast;
+
 enum
 {
     DECLARATION,
@@ -40,31 +55,58 @@ size_t build_ast_base(
                 base[*base_count].ret_data.value = malloc(sizeof(struct ast_base));
                 *base[*base_count].ret_data.value = hist[--hist_count];
                 *base_count += 1;
-            } else if(strcmp(token_str, "_end") == 0) {
+            } else if(strcmp(token_str, "_end") == 0 ||
+                      (strcmp(token_str, "_else") == 0 && token_i != 0)) {
                 assert(hist_count == 0);
                 free(hist);
 
                 return token_i+1;
             } else if(strcmp(token_str, "_add") == 0) {
-                assert(hist_count >= 2);
-
-                struct ast_base ast;
-                ast.type = AST_ARTH;
-
-                ast.arth_data.target = malloc(sizeof(struct ast_base));
-                ast.arth_data.other  = malloc(sizeof(struct ast_base));
-
-                *ast.arth_data.target = hist[--hist_count];
-                *ast.arth_data.other  = hist[--hist_count];
-
-                hist[hist_count++] = ast;
+                DEF_ARTH(ARTH_ADD)
+            } else if(strcmp(token_str, "_eq") == 0) {
+                DEF_ARTH(ARTH_EQ)
+            } else if(strcmp(token_str, "_ne") == 0) {
+                DEF_ARTH(ARTH_NE)
             } else if(strcmp(token_str, "_begin") == 0) {
-                //assert(base[(*base_count)-1].type == AST_PROC);
-                if(token_i != 0) {
-                    printf("_begin not at begining.\nMy token_i: %zu | Root type: %i at %zu,%zu\n", token_i, tokens->type, tokens->loc.line, tokens->loc.at);
-                    print_error_at(&tokens[token_i].loc, "here");
-                    exit(1);
+                if(token_i == 0) { break; }
+
+                struct ast_if if_data;
+                if_data.condition = malloc(sizeof(struct ast_base));
+                *if_data.condition = hist[--hist_count];
+
+                if_data.false_bases = NULL;
+                if_data.false_count = 0;
+
+                //token_i += 1;
+                size_t used_tokens =
+                    build_ast_base(tokens + token_i,
+                                   token_count-token_i,
+                                   &if_data.true_bases,
+                                   &if_data.true_count);
+
+                token_i += used_tokens - 1;
+                print_error_at(&tokens[token_i].loc, "begin");
+                printf("begin finished at %zu\n", token_i);
+                if(tokens[token_i].type == TOKEN_KEYWORD &&
+                   strcmp(tokens[token_i].str, "_else") == 0) {
+                    //token_i += 1;
+                    used_tokens =
+                        build_ast_base(tokens + token_i,
+                                       token_count-token_i,
+                                       &if_data.false_bases,
+                                       &if_data.false_count);
+
+                    token_i += used_tokens - 1;
+                    print_error_at(&tokens[token_i].loc, "else");
+                    printf("else finished at %zu\n", token_i);
                 }
+
+                base[*base_count].type = AST_IF;
+                base[*base_count].if_data = if_data;
+
+                *base_count += 1;
+            } else if(strcmp(token_str, "_else") == 0) {
+                break;
             } else {
                 fprintf(stderr, "Unknown keyword %s\n", token_str);
                 exit(1);
@@ -202,7 +244,10 @@ size_t build_ast_base(
                     data->base_count = 0;
                     break;
                 } else {
-                    assert(tokens[token_i].type == TOKEN_KEYWORD);
+                    if(tokens[token_i].type != TOKEN_KEYWORD) {
+                        print_error_at(&tokens[token_i].loc, "Expected '_begin' keyword");
+                        assert(0);
+                    }
                 }
 
                 size_t used_tokens =
@@ -334,6 +379,17 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 
             break;
         }
+        case AST_IF:
+        {
+            struct ast_if *if_data = &bases[base_i].if_data;
+
+            destroy_ast(if_data->true_bases, if_data->true_count);
+            destroy_ast(if_data->false_bases, if_data->false_count);
+
+            destroy_ast(if_data->condition, 1);
+
+            break;
+        }
         case AST_SEP:
         case AST_NUMBER:
             break;
@@ -386,7 +442,13 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         }
         case AST_ARTH:
         {
-            printf("arth\n");
+            char *arth_str = NULL;
+            switch (bases[base_i].arth_data.type) {
+            case ARTH_ADD: arth_str = "add"; break;
+            case ARTH_EQ: arth_str = "eq"; break;
+            case ARTH_NE: arth_str = "ne"; break;
+            }
+            printf("arth %s\n", arth_str);
             print_ast_bases(bases[base_i].arth_data.target, 1, indent+2);
             print_ast_bases(bases[base_i].arth_data.other, 1, indent+2);
 
@@ -414,6 +476,22 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         case AST_STR:
         {
             printf("str %s\n", bases[base_i].str_data.value);
+
+            break;
+        }
+        case AST_IF:
+        {
+            struct ast_if *data = &bases[base_i].if_data;
+
+            printf("if cond\n");
+            print_ast_bases(data->condition, 1, indent+2);
+
+            printf("if true\n");
+            print_ast_bases(data->true_bases, data->true_count, indent+2);
+            if(data->false_bases != NULL) {
+                printf("if false\n");
+                print_ast_bases(data->false_bases, data->false_count, indent+2);
+            }
 
             break;
         }

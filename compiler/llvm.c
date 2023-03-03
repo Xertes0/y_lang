@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ast.h"
 #include "third-party/sc/map/sc_map.h"
 
 #include "llvm.h"
@@ -127,16 +128,30 @@ get_value_from_ast(
 
         assert(strcmp(target.type, other.type) == 0);
 
+        char *op_type = NULL;
+        switch (data->type) {
+        case ARTH_ADD: op_type = "add"; break;
+        case ARTH_EQ: op_type = "icmp eq"; break;
+        case ARTH_NE: op_type = "icmp ne"; break;
+        }
+
         fprintf(
             stream,
-            "%%%zu = add %s %s, %s\n",
-            ctx->var_count, target.type, target.rep, other.rep);
+            "%%%zu = %s %s %s, %s\n",
+            ctx->var_count,
+            op_type,
+            target.type, target.rep,
+            other.rep);
 
         free(target.rep);
         free(other.rep);
 
         sprintf(value.rep, "%%%zu", ctx->var_count);
-        value.type = target.type;
+        if(data->type == ARTH_EQ) {
+            value.type = "i1";
+        } else {
+            value.type = target.type;
+        }
 
         ctx->var_count += 1;
         return value;
@@ -206,6 +221,7 @@ get_value_from_ast(
 
         return value;
     }
+    case AST_IF:
     case AST_PROC:
     case AST_SEP:
     case AST_RET:
@@ -316,6 +332,41 @@ void generate_llvm(
 
             break;
         }
+        case AST_IF:
+        {
+            struct ast_if *if_data = &bases[base_i].if_data;
+            struct ast_value cond = get_value_from_ast(if_data->condition, ctx, stream);
+
+            size_t curr_label = ctx->label_count++;
+            fprintf(
+                stream,
+                "br i1 %s, label %%IFTRUE%zu, label %%IFFALSE%zu\n",
+                cond.rep, curr_label, curr_label);
+            fprintf(stream, "IFTRUE%zu:\n", curr_label);
+
+            generate_llvm(
+                if_data->true_bases,
+                if_data->true_count,
+                ctx, stream);
+
+            fprintf(stream, "br label %%IF%s%zu\n",
+                    if_data->false_bases==NULL?"FALSE":"END",
+                    curr_label);
+            fprintf(stream, "IFFALSE%zu:\n", curr_label);
+
+            if(if_data->false_bases != NULL) {
+                generate_llvm(
+                    if_data->false_bases,
+                    if_data->false_count,
+                    ctx, stream);
+                fprintf(stream, "br label %%IFEND%zu\n", curr_label);
+                fprintf(stream, "IFEND%zu:\n", curr_label);
+            }
+
+            free(cond.rep);
+
+            break;
+        }
         case AST_STR:
         case AST_RVAR:
         case AST_ARTH:
@@ -346,6 +397,7 @@ struct llvm_context make_llvm_context()
     struct llvm_context ctx;
     sc_map_init_sv(&ctx.indentifier_map, 0, 0);
     ctx.var_count = 1;
+    ctx.label_count = 1;
     ctx.strings = malloc(64 * sizeof(struct llvm_str));
     ctx.string_count = 0;
 

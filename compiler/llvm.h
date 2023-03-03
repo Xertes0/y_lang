@@ -17,6 +17,7 @@ struct llvm_str
 struct llvm_context
 {
     size_t var_count;
+    size_t label_count;
     struct sc_map_sv indentifier_map;
 
     struct llvm_str *strings;

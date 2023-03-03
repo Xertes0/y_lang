@@ -15,6 +15,7 @@ enum ast_type
     AST_TYPE,
     AST_RVAR,
     AST_STR,
+    AST_IF,
 };
 
 struct ast_number
@@ -28,8 +29,17 @@ struct ast_ret
     struct ast_base *value;
 };
 
+enum arth_type
+{
+    ARTH_ADD,
+    ARTH_EQ,
+    ARTH_NE,
+};
+
 struct ast_arth
 {
+    enum arth_type type;
+
     struct ast_base *target;
     struct ast_base *other;
 };
@@ -76,6 +86,17 @@ struct ast_str
     char *value;
 };
 
+struct ast_if
+{
+    struct ast_base *condition;
+
+    struct ast_base *true_bases;
+    size_t true_count;
+
+    struct ast_base *false_bases;
+    size_t false_count;
+};
+
 struct ast_base
 {
     enum ast_type type;
@@ -89,6 +110,7 @@ struct ast_base
         struct ast_vtype  vtype_data;
         struct ast_rvar   rvar_data;
         struct ast_str    str_data;
+        struct ast_if     if_data;
     };
 };
 
