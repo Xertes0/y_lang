@@ -60,6 +60,10 @@ void tokenise(
 
     while(!feof(stream)) {
         char c = (char)getc(stream);
+        if(c == ';') {
+            while((char)getc(stream) != ';') {};
+            c = (char)getc(stream);
+        }
 
         // Parsing
         if(!isgraph(c) && parsing_token) {

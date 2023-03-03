@@ -25,6 +25,7 @@ _end
 @std_put_i32
 [ :i32 ]
 
+; this is a comment ;
 @main :i32
 _begin
     @do_nothing !
@@ -36,4 +37,8 @@ _begin
 
     0 0 @do_smth _ret
 _end
+
+;
+    A long comment
+;
 
