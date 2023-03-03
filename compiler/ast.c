@@ -248,6 +248,17 @@ size_t build_ast_base(
 
             break;
         }
+        case TOKEN_STR:
+        {
+            struct ast_base ast;
+            ast.type = AST_STR;
+
+            ast.str_data.value = malloc((strlen(tokens[token_i].str) + 1) * sizeof(char));
+            strcpy(ast.str_data.value, tokens[token_i].str);
+            hist[hist_count++] = ast;
+
+            break;
+        }
         case TOKEN_BEGIN:
         case TOKEN_END:
         case TOKEN_SEP:
@@ -314,6 +325,12 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
         case AST_RVAR:
         {
             free(bases[base_i].rvar_data.name);
+
+            break;
+        }
+        case AST_STR:
+        {
+            free(bases[base_i].str_data.value);
 
             break;
         }
@@ -391,6 +408,12 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         case AST_RVAR:
         {
             printf("var %s\n", bases[base_i].rvar_data.name);
+
+            break;
+        }
+        case AST_STR:
+        {
+            printf("str %s\n", bases[base_i].str_data.value);
 
             break;
         }

@@ -5,6 +5,7 @@
 #include "third-party/sc/map/sc_map.h"
 
 #include "llvm.h"
+#include "token.h"
 
 enum
 {
@@ -57,6 +58,47 @@ void generate_call(
         free(values[var_i].rep);
     }
     fprintf(stream, ")\n");
+}
+
+struct llvm_str
+parse_str_literal(struct ast_str *ast)
+{
+    char const *str = ast->value;
+    char *rep = malloc(256 * sizeof(char));
+    char *out = rep;
+
+    size_t size = 0;
+
+    while(*str != '\0') {
+        if(*str == '\\') {
+            *out++ = '\\';
+            char next = *++str;
+            switch (next) {
+            case 'n': *out++ = '0'; *out++ = 'A'; break;
+            default:
+                fprintf(stderr, "Unkown char after backslash");
+                exit(1);
+            }
+        } else {
+            *out++ = *str;
+        }
+
+        str += 1;
+        size += 1;
+    }
+
+    *out++ = '\\';
+    *out++ = '0';
+    *out++ = '0';
+
+    size += 1;
+
+    *out++ = '\0';
+
+    char *type = malloc(32 * sizeof(char));
+    sprintf(type, "[%zu x i8]", size);
+
+    return (struct llvm_str){ .rep = rep, .type = type, .size = size };
 }
 
 struct ast_value
@@ -144,12 +186,35 @@ get_value_from_ast(
 
         return value;
     }
+    case AST_STR:
+    {
+        struct llvm_str str = parse_str_literal(&base->str_data);
+        ctx->strings[ctx->string_count] = str;
+
+        fprintf(
+            stream,
+            "%%%zu = getelementptr %s,%s* @.str%zu, i64 0, i64 0\n",
+            ctx->var_count,
+            str.type, str.type,
+            ctx->string_count);
+
+        sprintf(value.rep, "%%%zu", ctx->var_count);
+        value.type = str.type;
+
+        ctx->string_count += 1;
+        ctx->var_count += 1;
+
+        return value;
+    }
     case AST_PROC:
     case AST_SEP:
     case AST_RET:
         assert(0);
     }
 
+    // To future self:
+    // if you got printed you propably 'break;'ed the switch
+    // instead of 'return value;'
     fprintf(stderr, "Tried to get %i\n", base->type);
     assert(0);
 }
@@ -251,6 +316,7 @@ void generate_llvm(
 
             break;
         }
+        case AST_STR:
         case AST_RVAR:
         case AST_ARTH:
         case AST_SEP:
@@ -260,3 +326,43 @@ void generate_llvm(
         }
     }
 }
+
+void generate_llvm_string_literals(
+    struct llvm_context *ctx,
+    FILE *stream)
+{
+    for(size_t str_i=0;str_i<ctx->string_count;++str_i) {
+        fprintf(
+            stream,
+            "@.str%zu = private unnamed_addr constant %s c\"%s\"\n",
+            str_i,
+            ctx->strings[str_i].type,
+            ctx->strings[str_i].rep);
+    }
+}
+
+struct llvm_context make_llvm_context()
+{
+    struct llvm_context ctx;
+    sc_map_init_sv(&ctx.indentifier_map, 0, 0);
+    ctx.var_count = 1;
+    ctx.strings = malloc(64 * sizeof(struct llvm_str));
+    ctx.string_count = 0;
+
+    return ctx;
+}
+
+void destroy_llvm_context(struct llvm_context *ctx)
+{
+    struct llvm_iden *iden;
+    sc_map_foreach_value(&ctx->indentifier_map, iden) {
+        free(iden);
+    }
+
+    for(size_t str_i=0;str_i<ctx->string_count;++str_i) {
+        free(ctx->strings[str_i].rep);
+        free(ctx->strings[str_i].type);
+    }
+    free(ctx->strings);
+}
+

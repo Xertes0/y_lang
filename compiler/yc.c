@@ -37,16 +37,12 @@ int main(int argc, char *argv[])
 
     FILE *ll_out = fopen(argv[2], "w");
 
-    struct llvm_context ctx;
-    sc_map_init_sv(&ctx.indentifier_map, 0, 0);
-    ctx.var_count = 1;
+    struct llvm_context ctx = make_llvm_context();
 
     generate_llvm(bases, base_count, &ctx, ll_out);
+    generate_llvm_string_literals(&ctx, ll_out);
 
-    struct llvm_iden *iden;
-    sc_map_foreach_value(&ctx.indentifier_map, iden) {
-        free(iden);
-    }
+    destroy_llvm_context(&ctx);
 
     sc_map_term_sv(&ctx.indentifier_map);
 

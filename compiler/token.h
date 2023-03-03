@@ -13,6 +13,7 @@ enum token_type
     TOKEN_END,
     TOKEN_SEP,
     TOKEN_DISC,
+    TOKEN_STR,
 };
 
 struct location

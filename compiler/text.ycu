@@ -19,6 +19,9 @@ _begin
     $b $a _add _ret
 _end
 
+@std_put_s
+[ :i8* ]
+
 @std_put_i32
 [ :i32 ]
 
@@ -27,8 +30,10 @@ _begin
     @do_nothing !
     2 3 @do_almost_smth !
 
-    420 @std_put_i32 !
+    "Hello world: " @std_put_s !
+    1234 @std_put_i32 !
+    "\n" @std_put_s !
 
-    2 3 @do_smth _ret
+    0 0 @do_smth _ret
 _end
 

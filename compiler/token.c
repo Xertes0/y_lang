@@ -71,13 +71,32 @@ void tokenise(
             parsing_token = false;
         } else if(isgraph(c)) {
             if(!parsing_token) {
-                token_i->str = malloc(64 * sizeof(char));
-                token_str_i = token_i->str;
+                if(c == '"') {
+                    token_i->str = malloc(256 * sizeof(char));
+                    token_str_i = token_i->str;
+
+                    c = (char)getc(stream);
+                    do {
+                        *token_str_i++ = c;
+                        c = (char)getc(stream);
+                    } while(c != '"');
+
+                    *token_str_i++ = '\0';
+                    token_i->type = TOKEN_STR;
+                    token_i->loc = curr_loc;
+                    token_i += 1;
+
+                    goto here;
+                } else {
+                    token_i->str = malloc(64 * sizeof(char));
+                    token_str_i = token_i->str;
+                }
             }
             parsing_token = true;
             *token_str_i++ = c;
         }
 
+here:
         // Location
         if(c == '\n') {
             curr_loc.line += 1;

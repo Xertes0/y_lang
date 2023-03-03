@@ -14,6 +14,7 @@ enum ast_type
     AST_SEP,
     AST_TYPE,
     AST_RVAR,
+    AST_STR,
 };
 
 struct ast_number
@@ -70,6 +71,11 @@ struct ast_rvar
     char *name;
 };
 
+struct ast_str
+{
+    char *value;
+};
+
 struct ast_base
 {
     enum ast_type type;
@@ -82,6 +88,7 @@ struct ast_base
         struct ast_call   call_data;
         struct ast_vtype  vtype_data;
         struct ast_rvar   rvar_data;
+        struct ast_str    str_data;
     };
 };
 
