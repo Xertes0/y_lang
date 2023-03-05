@@ -485,6 +485,7 @@ void generate_llvm(
 
             break;
         }
+        case AST_DEREF:
         case AST_AT:
         case AST_STR:
         case AST_RVAR:

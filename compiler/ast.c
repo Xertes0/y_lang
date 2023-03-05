@@ -472,9 +472,27 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 
             break;
         }
-        case AST_SEP:
+        case AST_DEREF:
+        {
+            destroy_ast(bases[base_i].deref_data.target, 1);
+
+            break;
+        }
         case AST_ASS:
+        {
+            destroy_ast(bases[base_i].ass_data.target, 1);
+            destroy_ast(bases[base_i].ass_data.value, 1);
+
+            break;
+        }
         case AST_AT:
+        {
+            destroy_ast(bases[base_i].at_data.target, 1);
+            destroy_ast(bases[base_i].at_data.value, 1);
+
+            break;
+        }
+        case AST_SEP:
         case AST_NUMBER:
             break;
         }
@@ -579,9 +597,46 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
 
             break;
         }
+        case AST_DEREF:
+        {
+            printf("deref\n");
+            print_ast_bases(bases[base_i].deref_data.target, 1, indent+2);
+
+            break;
+        }
         case AST_PUT:
+        {
+            struct ast_put *put_data = &bases[base_i].put_data;
+            printf("put %s %s\n", put_data->type, put_data->var_name);
+
+            break;
+        }
         case AST_ASS:
+        {
+            struct ast_ass *ass_data = &bases[base_i].ass_data;
+            printf("ass\n");
+
+            printf("target\n");
+            print_ast_bases(ass_data->target, 1, indent+2);
+
+            printf("value\n");
+            print_ast_bases(ass_data->value, 1, indent+2);
+
+            break;
+        }
         case AST_AT:
+        {
+            struct ast_at *at_data = &bases[base_i].at_data;
+            printf("at\n");
+
+            printf("target\n");
+            print_ast_bases(at_data->target, 1, indent+2);
+
+            printf("value\n");
+            print_ast_bases(at_data->value, 1, indent+2);
+
+            break;
+        }
         case AST_SEP:
             break;
         }
