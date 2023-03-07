@@ -3,29 +3,31 @@
 #include <stddef.h>
 
 #include "token.h"
+#include "types.h"
 
 enum ast_type
 {
-    AST_PROC,
-    AST_NUMBER,
-    AST_RET,
     AST_ARTH,
-    AST_CALL,
-    AST_SEP,
-    AST_TYPE,
-    AST_RVAR,
-    AST_STR,
-    AST_IF,
     AST_ASS,
-    AST_PUT,
     AST_AT,
+    AST_CALL,
     AST_DEREF,
+    AST_IF,
+    AST_NUMBER,
+    AST_PROC,
+    AST_PUT,
+    AST_RET,
+    AST_RVAR,
+    AST_SEP,
+    AST_STR,
+    AST_TYPE,
 };
 
 struct ast_number
 {
     int value;
-    char *type;
+    struct type_type type;
+    struct type_type arr_type;
 };
 
 struct ast_ret
@@ -51,14 +53,14 @@ struct ast_arth
 struct ast_var
 {
     char *name;
-    char *type;
+    struct type_type type;
     char *rep;
 };
 
 struct ast_proc
 {
     char *name;
-    char *ret_type;
+    struct type_type ret_type;
 
     struct ast_var  *vars;
     size_t var_count;
@@ -73,11 +75,6 @@ struct ast_call
 
     struct ast_base  *args;
     size_t arg_count;
-};
-
-struct ast_vtype
-{
-    char *value;
 };
 
 struct ast_rvar
@@ -104,7 +101,7 @@ struct ast_if
 struct ast_put
 {
     char *var_name;
-    char *type;
+    struct type_type type;
 };
 
 struct ast_ass
@@ -134,8 +131,8 @@ struct ast_base
         struct ast_ret    ret_data;
         struct ast_arth   arth_data;
         struct ast_call   call_data;
-        struct ast_vtype  vtype_data;
-        struct ast_rvar   rvar_data;
+        struct type_type  type_data;
+        struct ast_rvar   rvar_data; // var name
         struct ast_str    str_data;
         struct ast_if     if_data;
         struct ast_put    put_data;

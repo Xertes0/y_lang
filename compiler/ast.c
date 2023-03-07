@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "token.h"
+#include "types.h"
 
 #define DEF_ARTH(TYPE) \
     assert(hist_count >= 2); \
@@ -118,7 +119,11 @@ size_t build_ast_base(
             struct ast_base ast;
             ast.type = AST_NUMBER;
             ast.number_data.value = atoi(tokens[token_i].str);
-            ast.number_data.type = "i32";
+            char const *colon = strchr(tokens[token_i].str, ':');
+            if (colon != NULL){
+                ast.number_data.type = parse_type(colon+1);
+                ast.number_data.arr_type = parse_type(tokens[token_i].str);
+            }
             hist[hist_count++] = ast;
 
             break;
@@ -190,15 +195,12 @@ size_t build_ast_base(
                 token_i += 1;
                 if(tokens[token_i].type == TOKEN_TYPE) {
                     // Has non-void return type
-                    size_t type_len = strlen(tokens[token_i].str);
-                    data->ret_type = malloc(type_len * sizeof(char));
-                    strcpy(data->ret_type, tokens[token_i].str+1);
+                    data->ret_type = parse_type(tokens[token_i].str+1);
 
                     token_i += 1;
                 } else {
                     // Has void return type
-                    data->ret_type = malloc(5 * sizeof(char));
-                    strcpy(data->ret_type, "void");
+                    data->ret_type = parse_type("void");
                 }
 
                 if(tokens[token_i].type != TOKEN_BEGIN) {
@@ -217,8 +219,7 @@ size_t build_ast_base(
                             assert_token(&tokens[token_i+1], TOKEN_VAR);
                         }
 
-                        var_i->type = malloc(strlen(tokens[token_i].str));
-                        strcpy(var_i->type, tokens[token_i].str + 1);
+                        var_i->type = parse_type(tokens[token_i].str + 1);
                         token_i += 1;
 
                         var_i->name = NULL;
@@ -267,9 +268,7 @@ size_t build_ast_base(
             struct ast_base ast;
             ast.type = AST_TYPE;
 
-            size_t value_len = strlen(tokens[token_i].str);
-            ast.vtype_data.value = malloc(value_len * sizeof(char));
-            strcpy(ast.vtype_data.value, tokens[token_i].str + 1);
+            ast.type_data = parse_type(tokens[token_i].str + 1);
             hist[hist_count++] = ast;
 
             break;
@@ -315,12 +314,9 @@ size_t build_ast_base(
 
             struct ast_base *type = &hist[--hist_count];
             if(type->type == AST_TYPE) {
-                ast.put_data.type = type->vtype_data.value;
+                ast.put_data.type = copy_type(&type->type_data);
             } else if(type->type == AST_NUMBER) {
-                ast.put_data.type = malloc(32 * sizeof(char));
-                sprintf(ast.put_data.type, "[%i x %s]",
-                        type->number_data.value,
-                        type->number_data.type);
+                ast.put_data.type = copy_type(&type->number_data.arr_type);
             } else {
                 assert(0);
             }
@@ -396,7 +392,7 @@ void destroy_vars(struct ast_var *vars, size_t var_count)
 {
     for(size_t var_i=0;var_i<var_count;++var_i) {
         free(vars[var_i].name);
-        free(vars[var_i].type);
+        destroy_type(&vars[var_i].type);
     }
 
     free(vars);
@@ -409,7 +405,7 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
         case AST_PROC:
         {
             free(bases[base_i].proc_data.name);
-            free(bases[base_i].proc_data.ret_type);
+            destroy_type(&bases[base_i].proc_data.ret_type);
 
             destroy_ast(bases[base_i].proc_data.bases, bases[base_i].proc_data.base_count);
             destroy_vars(bases[base_i].proc_data.vars,  bases[base_i].proc_data.var_count);
@@ -436,12 +432,6 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 
             break;
         }
-        case AST_TYPE:
-        {
-            free(bases[base_i].vtype_data.value);
-
-            break;
-        }
         case AST_RVAR:
         {
             free(bases[base_i].rvar_data.name);
@@ -465,13 +455,6 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 
             break;
         }
-        case AST_PUT:
-        {
-            struct ast_put *data = &bases[base_i].put_data;
-            free(data->type);
-
-            break;
-        }
         case AST_DEREF:
         {
             destroy_ast(bases[base_i].deref_data.target, 1);
@@ -492,8 +475,26 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 
             break;
         }
-        case AST_SEP:
+        case AST_TYPE:
+        {
+            destroy_type(&bases[base_i].type_data);
+
+            break;
+        }
         case AST_NUMBER:
+        {
+            //destroy_type(&bases[base_i].number_data.type);
+            //destroy_type(&bases[base_i].number_data.arr_type);
+
+            break;
+        }
+        case AST_PUT:
+        {
+            destroy_type(&bases[base_i].put_data.type);
+
+            break;
+        }
+        case AST_SEP:
             break;
         }
     }
@@ -513,12 +514,14 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         {
             struct ast_proc *data = &bases[base_i].proc_data;
 
-            printf("%s %s %s ", data->bases==NULL?"decl":"proc", data->ret_type, data->name);
+            printf("%s ", data->bases==NULL?"decl":"proc");
+            print_type(&data->ret_type);
+            printf(" %s ", data->name);
             for(size_t arg_i=0;arg_i<data->var_count;++arg_i) {
-                printf("%s ", data->vars[arg_i].type);
+                print_type(&data->vars[arg_i].type);
 
                 if(data->vars[arg_i].name != NULL) {
-                    printf("%s,", data->vars[arg_i].name);
+                    printf(" %s,", data->vars[arg_i].name);
                 }
             }
             printf("\n");
@@ -565,7 +568,9 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         }
         case AST_TYPE:
         {
-            printf("type %s\n", bases[base_i].vtype_data.value);
+            printf("type ");
+            print_type(&bases[base_i].type_data);
+            printf("\n");
 
             break;
         }
@@ -607,7 +612,9 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         case AST_PUT:
         {
             struct ast_put *put_data = &bases[base_i].put_data;
-            printf("put %s %s\n", put_data->type, put_data->var_name);
+            printf("put ");
+            print_type(&put_data->type);
+            printf("%s\n", put_data->var_name);
 
             break;
         }

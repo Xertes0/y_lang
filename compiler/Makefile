@@ -14,7 +14,7 @@ THRID_SOURCES= \
 	./third-party/sc/map/sc_map.c
 
 SOURCES= \
-	ast.c token.c llvm.c yc.c
+	ast.c token.c types.c llvm.c llvm_types.c yc.c
 
 OBJECTS=$(SOURCES:.c=.o) $(THRID_SOURCES:.c=.o)
 

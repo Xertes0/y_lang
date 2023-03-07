@@ -7,6 +7,8 @@
 #include "ast.h"
 #include "llvm.h"
 #include "token.h"
+#include "llvm_types.h"
+#include "types.h"
 
 enum
 {
@@ -17,19 +19,8 @@ enum
 struct ast_value
 {
     char *rep;
-    char *type;
+    struct type_type type;
 };
-
-void variable_to_ptr_str(char **o_str)
-{
-    char *str = *o_str;
-
-    size_t len = strlen(str);
-    str[len-1] = '\0';
-    str[len-2] = '*';
-
-    *o_str = strchr(str, 'x') + 2;
-}
 
 struct ast_value
 get_value_from_ast(
@@ -56,16 +47,14 @@ void generate_call(
         fprintf(stream, "%%%zu = ", ctx->var_count++);
     }
 
-    fprintf(stream,
-            "call %s @%s(",
-            proc_data->ret_type,
-            proc_data->name);
+    fprintf(stream, "call ");
+    print_type_rep(stream, &proc_data->ret_type);
+    fprintf(stream, " @%s(", proc_data->name);
     for(size_t ivar_i=0;ivar_i<proc_data->var_count;++ivar_i) {
         size_t var_i = proc_data->var_count - ivar_i - 1;
-        fprintf(stream, "%c%s %s",
-                ivar_i>0?',':' ',
-                proc_data->vars[ivar_i].type,
-                values[var_i].rep);
+        fprintf(stream, "%c", ivar_i>0?',':' ');
+        print_type_rep(stream, &proc_data->vars[ivar_i].type);
+        fprintf(stream, " %s", values[var_i].rep);
 
         free(values[var_i].rep);
     }
@@ -126,7 +115,7 @@ get_value_from_ast(
     case AST_NUMBER:
     {
         sprintf(value.rep, "%i", base->number_data.value);
-        value.type = base->number_data.type;
+        value.type = copy_type(&base->number_data.type);
 
         return value;
     }
@@ -137,7 +126,8 @@ get_value_from_ast(
         struct ast_value target = get_value_from_ast(data->target, ctx, stream);
         struct ast_value other  = get_value_from_ast(data->other, ctx, stream);
 
-        assert(strcmp(target.type, other.type) == 0);
+        // TODO
+        //assert(strcmp(target.type, other.type) == 0);
 
         char *op_type = NULL;
         switch (data->type) {
@@ -146,22 +136,18 @@ get_value_from_ast(
         case ARTH_NE: op_type = "icmp ne"; break;
         }
 
-        fprintf(
-            stream,
-            "%%%zu = %s %s %s, %s\n",
-            ctx->var_count,
-            op_type,
-            target.type, target.rep,
-            other.rep);
+        fprintf(stream, "%%%zu = %s ", ctx->var_count, op_type);
+        print_type_rep(stream, &target.type);
+        fprintf(stream," %s, %s\n", target.rep, other.rep);
 
         free(target.rep);
         free(other.rep);
 
         sprintf(value.rep, "%%%zu", ctx->var_count);
         if(data->type == ARTH_EQ) {
-            value.type = "i1";
+            value.type = parse_type("i1");
         } else {
-            value.type = target.type;
+            value.type = copy_type(&target.type);
         }
 
         ctx->var_count += 1;
@@ -169,7 +155,7 @@ get_value_from_ast(
     }
     case AST_TYPE:
     {
-        value.type = base->vtype_data.value;
+        value.type = copy_type(&base->type_data);
         strcpy(value.rep, "--!SHOULDNOTBEHERE!--");
 
         return value;
@@ -184,7 +170,7 @@ get_value_from_ast(
             exit(1);
         }
 
-        value.type = var->type;
+        value.type = copy_type(&var->type);
         strcpy(value.rep, var->rep);
 
         return value;
@@ -208,7 +194,7 @@ get_value_from_ast(
         generate_call(call_data, proc_data, ctx, stream, RETURN_VALUE_KEEP);
 
         sprintf(value.rep, "%%%zu", ctx->var_count-1);
-        value.type = proc_data->ret_type;
+        value.type = copy_type(&proc_data->ret_type);
 
         return value;
     }
@@ -225,7 +211,7 @@ get_value_from_ast(
             ctx->string_count);
 
         sprintf(value.rep, "%%%zu", ctx->var_count);
-        value.type = str.type;
+        value.type = parse_type(str.type);
 
         ctx->string_count += 1;
         ctx->var_count += 1;
@@ -236,7 +222,7 @@ get_value_from_ast(
     {
         struct ast_at *at_data = &base->at_data;
 
-        struct ast_value to_value =
+        struct ast_value to_value = // TODO name better
             get_value_from_ast(
                 at_data->value, ctx, stream);
 
@@ -244,20 +230,36 @@ get_value_from_ast(
             get_value_from_ast(
                 at_data->target, ctx, stream);
 
-        size_t type_len = strlen(target.type);
-        target.type[type_len-1] = '\0';
+        assert(target.type.type == TYPE_ARRAY);
 
-        fprintf(stream, "%%%zu = getelementptr %s, %s* %s, i64 0, %s %s\n",
-                ctx->var_count,
-                target.type, target.type, target.rep,
-                to_value.type, to_value.rep);
+        //size_t type_len = strlen(target.type);
+        //target.type[type_len-1] = '\0';
 
-        target.type[type_len-1] = '*';
+        struct type_type decayed_type = target.type;
+        assert(target.type.ptr_count > 0);
+        decayed_type.ptr_count -= 1;
+
+        fprintf(stream, "%%%zu = getelementptr ", ctx->var_count);
+        print_type_rep(stream, &decayed_type);
+        fprintf(stream, ", ");
+        print_type_rep(stream, &target.type);
+        fprintf(stream, " %s, i64 0, ", target.rep);
+        print_type_rep(stream, &to_value.type);
+        fprintf(stream, " %s\n", to_value.rep);
+
+        //fprintf(stream, "%%%zu = getelementptr %s, %s* %s, i64 0, %s %s\n",
+        //        ctx->var_count,
+        //        target.type, target.type, target.rep,
+        //        to_value.type, to_value.rep);
+
+        //target.type[type_len-1] = '*';
 
         sprintf(value.rep, "%%%zu", ctx->var_count);
-        value.type = malloc(64 * sizeof(char));
-        strcpy(value.type, target.type);
-        variable_to_ptr_str(&value.type);
+        //value.type = malloc(64 * sizeof(char));
+        //strcpy(value.type, target.type);
+        //variable_to_ptr_str(&value.type);
+        value.type = copy_type(target.type.array_data.holds);
+        value.type.ptr_count += 1;
 
         ctx->var_count += 1;
 
@@ -273,19 +275,28 @@ get_value_from_ast(
         struct ast_value target = get_value_from_ast(
             deref_data->target, ctx, stream);
 
-        size_t len = strlen(target.type);
-        target.type[len-1] = '\0';
-        fprintf(stream, "%%%zu = load %s",
-                ctx->var_count, target.type);
+        //size_t len = strlen(target.type);
+        //target.type[len-1] = '\0';
+        //fprintf(stream, "%%%zu = load %s",
+        //        ctx->var_count, target.type);
+        fprintf(stream, "%%%zu = load ", ctx->var_count);
+        struct type_type load_type = copy_type(&target.type);
+        assert(load_type.ptr_count > 0);
+        load_type.ptr_count -= 1;
+        print_type_rep(stream, &load_type);
 
-        value.type = malloc(len);
-        strcpy(value.type, target.type);
+        //value.type = malloc(len);
+        //strcpy(value.type, target.type);
 
-        target.type[len-1] = '*';
-        fprintf(stream, ", %s %s\n",
-                target.type, target.rep);
+        //target.type[len-1] = '*';
+        //fprintf(stream, ", %s %s\n",
+        //        target.type, target.rep);
+        fprintf(stream, ", ");
+        print_type_rep(stream, &target.type);
+        fprintf(stream, " %s\n", target.rep);
 
         sprintf(value.rep, "%%%zu", ctx->var_count);
+        value.type = load_type;
 
         ctx->var_count += 1;
 
@@ -331,18 +342,24 @@ void generate_llvm(
 
             int definition = data->bases != NULL;
 
-            fprintf(stream, "%s %s @%s(", definition?"define":"declare", data->ret_type, data->name);
+            fprintf(stream, "%s ", definition?"define":"declare");
+            print_type_rep(stream, &data->ret_type);
+            fprintf(stream, " @%s(", data->name);
 
             ctx->var_count = 0;
             for(size_t var_i=0;var_i<data->var_count;++var_i) {
-                fprintf(stream, "%c%s ", var_i>0?',':' ', data->vars[var_i].type);
+                if(var_i > 0) {
+                    fprintf(stream, ",");
+                }
+                print_type_rep(stream, &data->vars[var_i].type);
+                //fprintf(stream, "%c%s ", var_i>0?',':' ');//, data->vars[var_i].type);
 
                 if(definition) {
                     fprintf(stream, "%%%zu", ctx->var_count++);
 
                     struct llvm_iden *var_map = malloc(sizeof(struct llvm_iden));
                     var_map->type = AST_RVAR;
-                    var_map->var_data.type = data->vars[var_i].type;
+                    var_map->var_data.type = copy_type(&data->vars[var_i].type);
                     //var_map->var_data.name = malloc(32 * sizeof(char));
                     //sprintf(var_map->var_data.name, "%zu", ctx->var_count-1);
                     var_map->var_data.name = data->vars[var_i].name;
@@ -379,10 +396,12 @@ void generate_llvm(
             struct ast_value value = get_value_from_ast(
                 bases[base_i].ret_data.value,
                 ctx, stream);
-            if(strcmp(value.type, "void") == 0) {
-                fprintf(stream, "ret %s\n", value.type);
+            if(value.type.type == TYPE_VOID) {
+                fprintf(stream, "ret void\n");
             } else {
-                fprintf(stream, "ret %s %s\n", value.type, value.rep);
+                fprintf(stream, "ret ");
+                print_type_rep(stream, &value.type);
+                fprintf(stream, " %s\n", value.rep);
             }
 
             free(value.rep);
@@ -446,15 +465,17 @@ void generate_llvm(
         case AST_PUT:
         {
             struct ast_put *put_data = &bases[base_i].put_data;
-            fprintf(stream, "%%%s = alloca %s\n",
-                    put_data->var_name, put_data->type);
+            fprintf(stream, "%%%s = alloca ",
+                    put_data->var_name);
+            print_type_rep(stream, &put_data->type);
+            fprintf(stream, "\n");
 
             struct llvm_iden *var_map = malloc(sizeof(struct llvm_iden));
             var_map->type = AST_RVAR;
             var_map->var_data.name = put_data->var_name;
 
-            var_map->var_data.type = malloc(32 * sizeof(char));
-            sprintf(var_map->var_data.type, "%s*", put_data->type);
+            var_map->var_data.type = copy_type(&put_data->type);
+            var_map->var_data.type.ptr_count += 1;
 
             var_map->var_data.rep = malloc(32 * sizeof(char));
             sprintf(var_map->var_data.rep, "%%%s", put_data->var_name);
@@ -475,10 +496,11 @@ void generate_llvm(
             struct ast_value value = get_value_from_ast(
                 ass_data->value, ctx, stream);
 
-            fprintf(stream,
-                "store %s %s, %s %s\n",
-                value.type, value.rep,
-                target.type, target.rep);
+            fprintf(stream, "store ");
+            print_type_rep(stream, &value.type);
+            fprintf(stream, " %s, ", value.rep);
+            print_type_rep(stream, &target.type);
+            fprintf(stream, " %s\n", target.rep);
 
             free(value.rep);
             free(target.rep);
