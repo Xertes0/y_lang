@@ -510,6 +510,7 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
         }
         case AST_PUT:
         {
+            free(bases[base_i].put_data.var_name);
             destroy_type(&bases[base_i].put_data.type);
 
             break;
