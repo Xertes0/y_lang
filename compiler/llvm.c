@@ -166,7 +166,12 @@ get_value_from_ast(
             &((struct llvm_iden*)sc_map_get_sv(&ctx->indentifier_map, base->rvar_data.name))->var_data;
 
         if(!sc_map_found(&ctx->indentifier_map)) {
-            fprintf(stderr, "Indentifier not found %s\n", base->rvar_data.name);
+            char const *iter_name;
+            sc_map_foreach_key(&ctx->indentifier_map, iter_name) {
+                printf("-Key strcmp (%s)(%s) == %i\n", iter_name, base->rvar_data.name, strcmp(iter_name, base->rvar_data.name));
+            }
+
+            fprintf(stderr, "Indentifier not found (%s)\n", base->rvar_data.name);
             exit(1);
         }
 
@@ -304,6 +309,34 @@ get_value_from_ast(
 
         return value;
     }
+    case AST_AS:
+    {
+        struct ast_value src =
+            get_value_from_ast(base->as_data.source, ctx, stream);
+
+        assert(src.type.type == base->as_data.type.type);
+        assert(src.type.ptr_count == 0);
+        assert(base->as_data.type.ptr_count == 0);
+
+        char const* op = NULL;
+        if(src.type.number_data.bit_count > base->as_data.type.number_data.bit_count) {
+            op = "trunc";
+        } else {
+            op = "sext";
+        }
+
+        fprintf(stream, "%%%zu = %s ", ctx->var_count, op);
+        print_type_rep(stream, &src.type);
+        fprintf(stream, " %s to ", src.rep);
+        print_type_rep(stream, &base->as_data.type);
+        fprintf(stream, "\n");
+
+        value.type = copy_type(&base->as_data.type);
+        sprintf(value.rep, "%%%zu", ctx->var_count);
+        ctx->var_count += 1;
+
+        return value;
+    }
     case AST_ASS:
     case AST_BREAK:
     case AST_IF:
@@ -341,6 +374,7 @@ void generate_llvm(
             sc_map_put_sv(
                 &ctx->indentifier_map,
                 data->name, proc_map);
+            printf("Put %s\n", data->name);
 
             int definition = data->bases != NULL;
 
@@ -371,6 +405,7 @@ void generate_llvm(
                     sc_map_put_sv(
                             &ctx->indentifier_map,
                             data->vars[var_i].name, var_map);
+                    printf("Put %s\n", data->vars[var_i].name);
                 }
             }
 
@@ -489,6 +524,7 @@ void generate_llvm(
             sc_map_put_sv(
                 &ctx->indentifier_map,
                 put_data->var_name, var_map);
+            printf("Put %s\n", put_data->var_name);
 
             break;
         }
@@ -538,6 +574,7 @@ void generate_llvm(
             break;
         }
         case AST_ARTH:
+        case AST_AS:
         case AST_AT:
         case AST_DEREF:
         case AST_NUMBER:

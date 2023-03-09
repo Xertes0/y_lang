@@ -8,6 +8,7 @@
 enum ast_type
 {
     AST_ARTH,
+    AST_AS,
     AST_ASS,
     AST_AT,
     AST_BREAK,
@@ -129,25 +130,32 @@ struct ast_deref
     struct ast_base *target;
 };
 
+struct ast_as
+{
+    struct ast_base *source;
+    struct type_type type;
+};
+
 struct ast_base
 {
     enum ast_type type;
     union
     {
-        struct ast_proc   proc_data;
-        struct ast_number number_data;
-        struct ast_ret    ret_data;
         struct ast_arth   arth_data;
-        struct ast_call   call_data;
-        struct type_type  type_data;
-        struct ast_rvar   rvar_data; // var name
-        struct ast_str    str_data;
-        struct ast_if     if_data;
-        struct ast_put    put_data;
+        struct ast_as     as_data;
         struct ast_ass    ass_data;
         struct ast_at     at_data;
+        struct ast_call   call_data;
         struct ast_deref  deref_data;
+        struct ast_if     if_data;
         struct ast_loop   loop_data;
+        struct ast_number number_data;
+        struct ast_proc   proc_data;
+        struct ast_put    put_data;
+        struct ast_ret    ret_data;
+        struct ast_rvar   rvar_data; // var name
+        struct ast_str    str_data;
+        struct type_type  type_data;
     };
 };
 

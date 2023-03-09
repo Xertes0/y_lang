@@ -25,6 +25,16 @@ _begin
 
     "\n" @std_put_s !
 
+    :s8 $src .
+    :s32 $dest .
+
+    10:s8 $src =
+    $src:s32 $dest =
+
+    "Casted s8 to s32 " @std_put_s !
+    $dest * @std_put_i32 !
+    "\n" @std_put_s !
+
     0 _ret
 
 _end

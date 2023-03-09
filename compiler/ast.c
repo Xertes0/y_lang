@@ -296,10 +296,36 @@ size_t build_ast_base(
         case TOKEN_VAR:
         {
             struct ast_base ast;
-            ast.type = AST_RVAR;
-            size_t name_len = strlen(tokens[token_i].str);
-            ast.rvar_data.name = malloc(name_len * sizeof(char));
-            strcpy(ast.rvar_data.name, tokens[token_i].str + 1);
+
+            char const* colon = strchr(tokens[token_i].str, ':');
+            if(colon == NULL) {
+                ast.type = AST_RVAR;
+                size_t name_len = strlen(tokens[token_i].str);
+                ast.rvar_data.name = malloc(name_len * sizeof(char));
+                strcpy(ast.rvar_data.name, tokens[token_i].str + 1);
+            } else {
+                ast.type = AST_AS;
+
+                struct ast_rvar rvar;
+                rvar.name = malloc((size_t)(colon-tokens[token_i].str) * sizeof(char));
+                strncpy(rvar.name, tokens[token_i].str + 1, (size_t)(colon-tokens[token_i].str) - 1);
+                rvar.name[(colon-tokens[token_i].str) - 1] = '\0';
+                printf("rvar name (%s) -> (%s)\n", tokens[token_i].str, rvar.name);
+
+                struct ast_base rvar_base;
+                rvar_base.type = AST_RVAR;
+                rvar_base.rvar_data = rvar;
+
+                struct ast_base deref_base;
+                deref_base.type = AST_DEREF;
+                deref_base.deref_data.target = malloc(sizeof(struct ast_base));
+                *deref_base.deref_data.target = rvar_base;
+
+                ast.as_data.source = malloc(sizeof(struct ast_base));
+                *ast.as_data.source = deref_base;
+
+                ast.as_data.type = parse_type(colon+1);
+            }
             hist[hist_count++] = ast;
 
             break;
@@ -522,6 +548,14 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 
             break;
         }
+        case AST_AS:
+        {
+            struct ast_as *as_data = &bases[base_i].as_data;
+            destroy_ast(as_data->source, 1);
+            destroy_type(&as_data->type);
+
+            break;
+        }
         case AST_BREAK:
         case AST_SEP:
             break;
@@ -643,7 +677,7 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
             struct ast_put *put_data = &bases[base_i].put_data;
             printf("put ");
             print_type(&put_data->type);
-            printf("%s\n", put_data->var_name);
+            printf(" %s\n", put_data->var_name);
 
             break;
         }
@@ -684,6 +718,16 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         case AST_BREAK:
         {
             printf("break\n");
+
+            break;
+        }
+        case AST_AS:
+        {
+            struct ast_as *as_data = &bases[base_i].as_data;
+            printf("as\n");
+            printf("%s\n", as_data->source->rvar_data.name);
+            print_type(&as_data->type);
+            printf("\n");
 
             break;
         }
