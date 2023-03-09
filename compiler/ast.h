@@ -10,9 +10,11 @@ enum ast_type
     AST_ARTH,
     AST_ASS,
     AST_AT,
+    AST_BREAK,
     AST_CALL,
     AST_DEREF,
     AST_IF,
+    AST_LOOP,
     AST_NUMBER,
     AST_PROC,
     AST_PUT,
@@ -98,6 +100,12 @@ struct ast_if
     size_t false_count;
 };
 
+struct ast_loop
+{
+    struct ast_base *bases;
+    size_t base_count;
+};
+
 struct ast_put
 {
     char *var_name;
@@ -139,6 +147,7 @@ struct ast_base
         struct ast_ass    ass_data;
         struct ast_at     at_data;
         struct ast_deref  deref_data;
+        struct ast_loop   loop_data;
     };
 };
 

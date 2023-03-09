@@ -56,6 +56,9 @@ size_t build_ast_base(
                 base[*base_count].ret_data.value = malloc(sizeof(struct ast_base));
                 *base[*base_count].ret_data.value = hist[--hist_count];
                 *base_count += 1;
+            } else if(strcmp(token_str, "_break") == 0) {
+                base[*base_count].type = AST_BREAK;
+                *base_count += 1;
             } else if(strcmp(token_str, "_end") == 0 ||
                       (strcmp(token_str, "_else") == 0 && token_i != 0)) {
                 assert(hist_count == 0);
@@ -108,6 +111,20 @@ size_t build_ast_base(
                 *base_count += 1;
             } else if(strcmp(token_str, "_else") == 0) {
                 break;
+            } else if(strcmp(token_str, "_loop") == 0) {
+                if(token_i == 0) { break; }
+
+                struct ast_loop loop_data;
+                size_t used_tokens =
+                    build_ast_base(tokens + token_i,
+                                   token_count-token_i,
+                                   &loop_data.bases,
+                                   &loop_data.base_count);
+
+                token_i += used_tokens - 1;
+                base[*base_count].type = AST_LOOP;
+                base[*base_count].loop_data = loop_data;
+                *base_count += 1;
             } else {
                 fprintf(stderr, "Unknown keyword %s\n", token_str);
                 exit(1);
@@ -123,6 +140,9 @@ size_t build_ast_base(
             if (colon != NULL){
                 ast.number_data.type = parse_type(colon+1);
                 ast.number_data.arr_type = parse_type(tokens[token_i].str);
+            } else {
+                ast.number_data.type = parse_type("s32");
+                ast.number_data.arr_type.type = 999;
             }
             hist[hist_count++] = ast;
 
@@ -494,6 +514,14 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 
             break;
         }
+        case AST_LOOP:
+        {
+            struct ast_loop *loop_data = &bases[base_i].loop_data;
+            destroy_ast(loop_data->bases, loop_data->base_count);
+
+            break;
+        }
+        case AST_BREAK:
         case AST_SEP:
             break;
         }
@@ -641,6 +669,20 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
 
             printf("value\n");
             print_ast_bases(at_data->value, 1, indent+2);
+
+            break;
+        }
+        case AST_LOOP:
+        {
+            struct ast_loop *loop_data = &bases[base_i].loop_data;
+            printf("loop\n");
+            print_ast_bases(loop_data->bases, loop_data->base_count, indent+2);
+
+            break;
+        }
+        case AST_BREAK:
+        {
+            printf("break\n");
 
             break;
         }

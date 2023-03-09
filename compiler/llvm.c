@@ -99,7 +99,7 @@ parse_str_literal(struct ast_str *ast)
     char *type = malloc(32 * sizeof(char));
     sprintf(type, "[%zu x i8]", size);
 
-    return (struct llvm_str){ .rep = rep, .type = type, .size = size };
+    return (struct llvm_str){ .rep = rep, .llvm_type = type, .size = size };
 }
 
 struct ast_value
@@ -145,7 +145,7 @@ get_value_from_ast(
 
         sprintf(value.rep, "%%%zu", ctx->var_count);
         if(data->type == ARTH_EQ) {
-            value.type = parse_type("i1");
+            value.type = parse_type("s1");
         } else {
             value.type = copy_type(&target.type);
         }
@@ -207,11 +207,11 @@ get_value_from_ast(
             stream,
             "%%%zu = getelementptr %s,%s* @.str%zu, i64 0, i64 0\n",
             ctx->var_count,
-            str.type, str.type,
+            str.llvm_type, str.llvm_type,
             ctx->string_count);
 
         sprintf(value.rep, "%%%zu", ctx->var_count);
-        value.type = parse_type(str.type);
+        value.type = parse_type("s8*");
 
         ctx->string_count += 1;
         ctx->var_count += 1;
@@ -304,12 +304,14 @@ get_value_from_ast(
 
         return value;
     }
-    case AST_IF:
     case AST_ASS:
-    case AST_PUT:
+    case AST_BREAK:
+    case AST_IF:
+    case AST_LOOP:
     case AST_PROC:
-    case AST_SEP:
+    case AST_PUT:
     case AST_RET:
+    case AST_SEP:
         assert(0);
     }
 
@@ -444,9 +446,11 @@ void generate_llvm(
                 if_data->true_count,
                 ctx, stream);
 
-            fprintf(stream, "br label %%IF%s%zu\n",
-                    if_data->false_bases==NULL?"FALSE":"END",
-                    curr_label);
+            if(if_data->true_bases[if_data->true_count-1].type != AST_BREAK) {
+                fprintf(stream, "br label %%IF%s%zu\n",
+                        if_data->false_bases==NULL?"FALSE":"END",
+                        curr_label);
+            }
             fprintf(stream, "IFFALSE%zu:\n", curr_label);
 
             if(if_data->false_bases != NULL) {
@@ -454,7 +458,9 @@ void generate_llvm(
                     if_data->false_bases,
                     if_data->false_count,
                     ctx, stream);
-                fprintf(stream, "br label %%IFEND%zu\n", curr_label);
+                if(if_data->false_bases[if_data->false_count-1].type != AST_BREAK) {
+                    fprintf(stream, "br label %%IFEND%zu\n", curr_label);
+                }
                 fprintf(stream, "IFEND%zu:\n", curr_label);
             }
 
@@ -507,14 +513,38 @@ void generate_llvm(
 
             break;
         }
-        case AST_DEREF:
-        case AST_AT:
-        case AST_STR:
-        case AST_RVAR:
+        case AST_LOOP:
+        {
+            size_t curr_label = ctx->label_count++;
+            fprintf(stream, "br label %%LOOPBEGIN%zu\n", curr_label);
+            fprintf(stream, "LOOPBEGIN%zu:\n", curr_label);
+            size_t past_label = ctx->current_label;
+            ctx->current_label = curr_label;
+
+            struct ast_loop *loop_data = &bases[base_i].loop_data;
+            generate_llvm(loop_data->bases, loop_data->base_count, ctx, stream);
+
+            fprintf(stream, "br label %%LOOPBEGIN%zu\n", curr_label);
+            fprintf(stream, "LOOPEND%zu:\n", curr_label);
+
+            ctx->current_label = past_label;
+
+            break;
+        }
+        case AST_BREAK:
+        {
+            fprintf(stream, "br label %%LOOPEND%zu\n", ctx->current_label);
+
+            break;
+        }
         case AST_ARTH:
-        case AST_SEP:
-        case AST_TYPE:
+        case AST_AT:
+        case AST_DEREF:
         case AST_NUMBER:
+        case AST_RVAR:
+        case AST_SEP:
+        case AST_STR:
+        case AST_TYPE:
             assert(0);
         }
     }
@@ -529,7 +559,7 @@ void generate_llvm_string_literals(
             stream,
             "@.str%zu = private unnamed_addr constant %s c\"%s\"\n",
             str_i,
-            ctx->strings[str_i].type,
+            ctx->strings[str_i].llvm_type,
             ctx->strings[str_i].rep);
     }
 }
@@ -558,7 +588,7 @@ void destroy_llvm_context(struct llvm_context *ctx)
 
     for(size_t str_i=0;str_i<ctx->string_count;++str_i) {
         free(ctx->strings[str_i].rep);
-        free(ctx->strings[str_i].type);
+        free(ctx->strings[str_i].llvm_type);
     }
     free(ctx->strings);
 }

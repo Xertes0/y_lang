@@ -10,7 +10,7 @@
 struct llvm_str
 {
     char *rep;
-    char *type;
+    char *llvm_type;
     size_t size;
 };
 
@@ -18,6 +18,7 @@ struct llvm_context
 {
     size_t var_count;
     size_t label_count;
+    size_t current_label;
     struct sc_map_sv indentifier_map;
 
     struct llvm_str *strings;

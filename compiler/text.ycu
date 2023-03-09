@@ -1,15 +1,31 @@
+@std_put_i32
+[ :s32 ]
+
+@std_put_s
+[ :s8* ]
+
 @main :s32
 _begin
 
-    :s32 $var .
+    :s32 $a .
+    2 $a =
 
-    10:s32 $arr .
+    _loop
+        $a * 64 _ne
+        _begin
+            "Not equal\n" @std_put_s !
+        _else
+            "Equal!\n" @std_put_s !
+            _break
+        _end
+        $a * $a * _add $a =
+    _end
 
-    100 $var =
+    $a * @std_put_i32 !
 
-    5 3 $arr , =
+    "\n" @std_put_s !
 
-    3 $arr , *  _ret
+    0 _ret
 
 _end
 
