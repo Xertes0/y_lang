@@ -1,12 +1,15 @@
 CC=cc
 
+#SANITIZERS= -fsanitize=address,leak,undefined
+SANITIZERS=
+
 CC_FLAGS= \
-	-fsanitize=address,leak,undefined \
+	$(SANITIZERS) \
 	-ggdb \
 	-Wall -Wextra -Wshadow -Wconversion -Wpedantic
 
 LD_FLAGS= \
-	-fsanitize=address,leak,undefined
+	$(SANITIZERS)
 
 EXE=yc
 

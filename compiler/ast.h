@@ -41,8 +41,11 @@ struct ast_ret
 enum arth_type
 {
     ARTH_ADD,
+    ARTH_DIV,
     ARTH_EQ,
+    ARTH_MOD,
     ARTH_NE,
+    ARTH_SUB,
 };
 
 struct ast_arth

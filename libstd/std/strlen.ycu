@@ -1,17 +1,16 @@
-@has "std/syswrite"@
+@syswrite
+[ :s8* :s32 ]
 
-_expose
-_proc
-i32 std_strlen(i8* $str)
-
-    :i32 $len :
+@std_strlen :s32
+[ :s8* $str ]
+_begin
+    :s32 $len .
     0 $len =
 
     _loop
-        0 :i8 _as
-        $len * $str @ *
-        _eq
-        _if
+        0:s8
+        $len * $str , *
+        _eq _begin
             $len * _ret
         _else
             1 $len * _add $len =
@@ -19,6 +18,5 @@ i32 std_strlen(i8* $str)
     _end
 
     0 _ret
-
 _end
 

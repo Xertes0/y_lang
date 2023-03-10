@@ -1,41 +1,42 @@
-@has "std/strlen"@
-@has "std/syswrite"@
+@std_syswrite
+[ :s8* :s32 ]
 
-_expose
-_proc
-void std_put_s(i8* $str)
+@std_strlen :s32
+[ :s8* ]
 
-    $str std_strlen $str std_syswrite
-
+@std_put_s
+[ :s8* $str ]
+_begin
+    $str @std_strlen
+    $str
+    @std_syswrite !
     :void _ret
-
 _end
 
-_expose
-_proc
-void std_put_i32(i32 $i_num)
-
-    :i32 $num :
+@std_put_i32
+[ :s32 $i_num ]
+_begin
+    :s32 $num .
     $i_num $num =
 
-    :i8 32 $buff :
-    0 31 $buff @ =
+    32:s8 $buff .
+    0:s8 31 $buff , =
 
-    :i32 $i :
+    :s32 $i .
     31 $i =
 
     _loop
-        0 $num * _eq _if _break _end
+        0 $num * _eq _begin _break _end
 
-        48 10 $num * _mod _add :i8 _as $i * $buff @ =
+        48 10 $num * _mod _add :s8 _as $i * $buff , =
         1 $i * _sub $i =
 
         10 $num * _div $num =
     _end
 
     $i * 32 _sub
-    $i * $buff @
-    std_syswrite
+    $i * $buff ,
+    @std_syswrite !
 
     :void _ret
 

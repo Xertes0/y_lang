@@ -51,7 +51,8 @@ void generate_call(
     print_type_rep(stream, &proc_data->ret_type);
     fprintf(stream, " @%s(", proc_data->name);
     for(size_t ivar_i=0;ivar_i<proc_data->var_count;++ivar_i) {
-        size_t var_i = proc_data->var_count - ivar_i - 1;
+        //size_t var_i = proc_data->var_count - ivar_i - 1;
+        size_t var_i = ivar_i;
         fprintf(stream, "%c", ivar_i>0?',':' ');
         print_type_rep(stream, &proc_data->vars[ivar_i].type);
         fprintf(stream, " %s", values[var_i].rep);
@@ -132,6 +133,9 @@ get_value_from_ast(
         char *op_type = NULL;
         switch (data->type) {
         case ARTH_ADD: op_type = "add"; break;
+        case ARTH_SUB: op_type = "sub"; break;
+        case ARTH_DIV: op_type = "sdiv"; break;
+        case ARTH_MOD: op_type = "srem"; break;
         case ARTH_EQ: op_type = "icmp eq"; break;
         case ARTH_NE: op_type = "icmp ne"; break;
         }
@@ -235,7 +239,10 @@ get_value_from_ast(
             get_value_from_ast(
                 at_data->target, ctx, stream);
 
-        assert(target.type.type == TYPE_ARRAY);
+        // TODO works only with arrays
+        //assert(target.type.type == TYPE_ARRAY);
+        assert(target.type.type == TYPE_ARRAY ||
+               target.type.ptr_count > 0);
 
         //size_t type_len = strlen(target.type);
         //target.type[type_len-1] = '\0';
@@ -248,7 +255,10 @@ get_value_from_ast(
         print_type_rep(stream, &decayed_type);
         fprintf(stream, ", ");
         print_type_rep(stream, &target.type);
-        fprintf(stream, " %s, i64 0, ", target.rep);
+        fprintf(stream, " %s, ", target.rep);
+        if(target.type.type == TYPE_ARRAY) {
+            fprintf(stream, "i64 0, ");
+        }
         print_type_rep(stream, &to_value.type);
         fprintf(stream, " %s\n", to_value.rep);
 
@@ -263,8 +273,12 @@ get_value_from_ast(
         //value.type = malloc(64 * sizeof(char));
         //strcpy(value.type, target.type);
         //variable_to_ptr_str(&value.type);
-        value.type = copy_type(target.type.array_data.holds);
-        value.type.ptr_count += 1;
+        if(target.type.type == TYPE_ARRAY) {
+            value.type = copy_type(target.type.array_data.holds);
+            value.type.ptr_count += 1;
+        } else {
+            value.type = copy_type(&target.type);
+        }
 
         ctx->var_count += 1;
 
@@ -374,7 +388,7 @@ void generate_llvm(
             sc_map_put_sv(
                 &ctx->indentifier_map,
                 data->name, proc_map);
-            printf("Put %s\n", data->name);
+            //printf("Put %s\n", data->name);
 
             int definition = data->bases != NULL;
 
@@ -405,7 +419,7 @@ void generate_llvm(
                     sc_map_put_sv(
                             &ctx->indentifier_map,
                             data->vars[var_i].name, var_map);
-                    printf("Put %s\n", data->vars[var_i].name);
+                    //printf("Put %s\n", data->vars[var_i].name);
                 }
             }
 
@@ -481,7 +495,8 @@ void generate_llvm(
                 if_data->true_count,
                 ctx, stream);
 
-            if(if_data->true_bases[if_data->true_count-1].type != AST_BREAK) {
+            if(if_data->true_bases[if_data->true_count-1].type != AST_BREAK &&
+               if_data->true_bases[if_data->true_count-1].type != AST_RET) {
                 fprintf(stream, "br label %%IF%s%zu\n",
                         if_data->false_bases==NULL?"FALSE":"END",
                         curr_label);
@@ -493,7 +508,8 @@ void generate_llvm(
                     if_data->false_bases,
                     if_data->false_count,
                     ctx, stream);
-                if(if_data->false_bases[if_data->false_count-1].type != AST_BREAK) {
+                if(if_data->false_bases[if_data->false_count-1].type != AST_BREAK &&
+                   if_data->false_bases[if_data->false_count-1].type != AST_RET) {
                     fprintf(stream, "br label %%IFEND%zu\n", curr_label);
                 }
                 fprintf(stream, "IFEND%zu:\n", curr_label);
@@ -524,7 +540,7 @@ void generate_llvm(
             sc_map_put_sv(
                 &ctx->indentifier_map,
                 put_data->var_name, var_map);
-            printf("Put %s\n", put_data->var_name);
+            //printf("Put %s\n", put_data->var_name);
 
             break;
         }

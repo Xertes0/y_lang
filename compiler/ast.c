@@ -67,10 +67,29 @@ size_t build_ast_base(
                 return token_i+1;
             } else if(strcmp(token_str, "_add") == 0) {
                 DEF_ARTH(ARTH_ADD)
+            } else if(strcmp(token_str, "_sub") == 0) {
+                DEF_ARTH(ARTH_SUB)
+            } else if(strcmp(token_str, "_div") == 0) {
+                DEF_ARTH(ARTH_DIV)
+            } else if(strcmp(token_str, "_mod") == 0) {
+                DEF_ARTH(ARTH_MOD)
             } else if(strcmp(token_str, "_eq") == 0) {
                 DEF_ARTH(ARTH_EQ)
             } else if(strcmp(token_str, "_ne") == 0) {
                 DEF_ARTH(ARTH_NE)
+            } else if(strcmp(token_str, "_as") == 0) {
+                assert(hist_count >= 2);
+
+                struct ast_base ast;
+                ast.type = AST_AS;
+
+                assert(hist[hist_count-1].type == AST_TYPE);
+                ast.as_data.type = hist[--hist_count].type_data;
+
+                ast.as_data.source = malloc(sizeof(struct ast_base));
+                *ast.as_data.source = hist[--hist_count];
+
+                hist[hist_count++] = ast;
             } else if(strcmp(token_str, "_begin") == 0) {
                 if(token_i == 0) { break; }
 
@@ -89,8 +108,8 @@ size_t build_ast_base(
                                    &if_data.true_count);
 
                 token_i += used_tokens - 1;
-                print_error_at(&tokens[token_i].loc, "begin");
-                printf("begin finished at %zu\n", token_i);
+                //print_error_at(&tokens[token_i].loc, "begin");
+                //printf("begin finished at %zu\n", token_i);
                 if(tokens[token_i].type == TOKEN_KEYWORD &&
                    strcmp(tokens[token_i].str, "_else") == 0) {
                     //token_i += 1;
@@ -101,8 +120,8 @@ size_t build_ast_base(
                                        &if_data.false_count);
 
                     token_i += used_tokens - 1;
-                    print_error_at(&tokens[token_i].loc, "else");
-                    printf("else finished at %zu\n", token_i);
+                    //print_error_at(&tokens[token_i].loc, "else");
+                    //printf("else finished at %zu\n", token_i);
                 }
 
                 base[*base_count].type = AST_IF;
@@ -151,7 +170,7 @@ size_t build_ast_base(
         case TOKEN_FUNCTION:
         {
             if(tokens->type == TOKEN_KEYWORD) {
-                printf("%s is a function call\n", tokens[token_i].str);
+                //printf("%s is a function call\n", tokens[token_i].str);
                 // Function call
                 struct ast_call data;
 
@@ -202,7 +221,7 @@ size_t build_ast_base(
                     }
                 }
                 assert(func_type != 100);
-                printf("%s is a function %s\n", tokens[token_i].str, func_type==DEFINITION?"definition":"declaration");
+                //printf("%s is a function %s\n", tokens[token_i].str, func_type==DEFINITION?"definition":"declaration");
 
                 base[*base_count].type = AST_PROC;
                 struct ast_proc *data = &base[*base_count].proc_data;
@@ -266,7 +285,7 @@ size_t build_ast_base(
                     break;
                 } else {
                     if(tokens[token_i].type != TOKEN_KEYWORD) {
-                        print_error_at(&tokens[token_i].loc, "Expected '_begin' keyword");
+                        //print_error_at(&tokens[token_i].loc, "Expected '_begin' keyword");
                         assert(0);
                     }
                 }
@@ -428,7 +447,11 @@ size_t build_ast_base(
         }
     }
 
-    assert(hist_count == 0);
+    if(hist_count != 0) {
+        fprintf(stderr, "hist_count = %zu\n", hist_count);
+        fprintf(stderr, "last type = %i\n", hist[hist_count-1].type);
+        assert(hist_count == 0);
+    }
     free(hist);
 
     return token_count;
@@ -613,6 +636,9 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
             char *arth_str = NULL;
             switch (bases[base_i].arth_data.type) {
             case ARTH_ADD: arth_str = "add"; break;
+            case ARTH_SUB: arth_str = "sub"; break;
+            case ARTH_DIV: arth_str = "div"; break;
+            case ARTH_MOD: arth_str = "mod"; break;
             case ARTH_EQ: arth_str = "eq"; break;
             case ARTH_NE: arth_str = "ne"; break;
             }
@@ -725,7 +751,7 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
         {
             struct ast_as *as_data = &bases[base_i].as_data;
             printf("as\n");
-            printf("%s\n", as_data->source->rvar_data.name);
+            print_ast_bases(as_data->source, 1, indent+2);
             print_type(&as_data->type);
             printf("\n");
 
