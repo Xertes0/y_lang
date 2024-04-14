@@ -1,12 +1,13 @@
-section .text
+format ELF64
 
-extern main
+extrn main
 
-global _start
+section '.text' executable
+
+public _start
 _start:
-    call main
+	call main
 
-    mov rdi, rax
-    mov rax, 60
-    syscall
-
+	mov rdi, rax
+	mov rax, 60
+	syscall

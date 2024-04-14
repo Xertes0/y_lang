@@ -21,8 +21,10 @@ SOURCES=$(shell find -not \( -path "./third-party" -prune \) -name '*.c')
 OBJECTS=$(SOURCES:.c=.o) $(THRID_SOURCES:.c=.o)
 DEPENDS=$(SOURCES:.c=.d)
 
+.PHONY: all
 all: $(EXE)
 
+.PHONY: run
 run: $(EXE)
 	./$(EXE) ./text.ycu ./text.ll
 
@@ -32,9 +34,8 @@ run: $(EXE)
 $(EXE): $(OBJECTS)
 	$(CC) $(LDFLAGS) $^ -o $@
 
+.PHONY: clean
 clean:
 	rm -Rf $(EXE) $(OBJECTS) $(DEPENDS)
-
-.PHONY: all clean
 
 -include $(DEPENDS)
