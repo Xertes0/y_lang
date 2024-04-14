@@ -16,6 +16,7 @@ enum ast_type
 	AST_DEREF,
 	AST_IF,
 	AST_LOOP,
+	AST_META,
 	AST_NUMBER,
 	AST_PROC,
 	AST_PUT,
@@ -110,6 +111,12 @@ struct ast_loop
 	size_t base_count;
 };
 
+struct ast_meta
+{
+	char *cmd;
+	char *data;
+};
+
 struct ast_put
 {
 	char *var_name;
@@ -152,6 +159,7 @@ struct ast_base
 		struct ast_deref  deref_data;
 		struct ast_if     if_data;
 		struct ast_loop   loop_data;
+		struct ast_meta   meta_data;
 		struct ast_number number_data;
 		struct ast_proc   proc_data;
 		struct ast_put    put_data;

@@ -18,6 +18,7 @@ enum token_type
 	TOKEN_PUT,
 	TOKEN_AT,
 	TOKEN_DEREF,
+	TOKEN_META,
 };
 
 struct location

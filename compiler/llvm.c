@@ -355,6 +355,7 @@ get_value_from_ast(
 	case AST_BREAK:
 	case AST_IF:
 	case AST_LOOP:
+	case AST_META:
 	case AST_PROC:
 	case AST_PUT:
 	case AST_RET:
@@ -586,6 +587,32 @@ void generate_llvm(
 		case AST_BREAK:
 		{
 			fprintf(stream, "br label %%LOOPEND%zu\n", ctx->current_label);
+
+			break;
+		}
+		case AST_META:
+		{
+			/* Assume cmd == 'has' */
+			char path[1024];
+			sprintf(path, "./%s.ypu", bases[base_i].meta_data.data);
+			FILE *src = fopen(path, "r");
+			if (!src) {
+				/* TODO: Use libstd path from cmd line. */
+				sprintf(path, "../libstd/std/%s.ypu", bases[base_i].meta_data.data);
+				src = fopen(path, "r");
+			}
+
+			struct token *tokens;
+			size_t token_count;
+			tokenise(src, &tokens, &token_count);
+
+			fclose(src);
+
+			struct ast_base *tmp_bases;
+			size_t tmp_base_count;
+			build_ast_base(tokens, token_count, &tmp_bases, &tmp_base_count);
+
+			generate_llvm(tmp_bases, tmp_base_count, ctx, stream);
 
 			break;
 		}

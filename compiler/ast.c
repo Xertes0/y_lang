@@ -440,6 +440,27 @@ size_t build_ast_base(
 
 			break;
 		}
+		case TOKEN_META:
+		{
+			struct ast_base ast;
+			ast.type = AST_META;
+
+			size_t len = strlen(token_str);
+			size_t sep = strchr(token_str, '-') - token_str;
+
+			ast.meta_data.cmd = malloc(sep);
+			ast.meta_data.cmd[sep - 1] = '\0';
+			strncpy(ast.meta_data.cmd, token_str + 1, sep - 1);
+
+			ast.meta_data.data = malloc(len);
+			strcpy(ast.meta_data.data, token_str + sep + 1);
+			ast.meta_data.data[len - sep - 2] = '\0';
+
+			base[*base_count] = ast;
+			*base_count += 1;
+
+			break;
+		}
 		case TOKEN_BEGIN:
 		case TOKEN_END:
 		case TOKEN_SEP:
@@ -576,6 +597,13 @@ void destroy_ast(struct ast_base *bases, size_t base_count)
 			struct ast_as *as_data = &bases[base_i].as_data;
 			destroy_ast(as_data->source, 1);
 			destroy_type(&as_data->type);
+
+			break;
+		}
+		case AST_META:
+		{
+			free(bases[base_i].meta_data.cmd);
+			free(bases[base_i].meta_data.data);
 
 			break;
 		}
@@ -755,6 +783,13 @@ void print_ast_bases(struct ast_base *bases, size_t base_count, size_t indent)
 			print_type(&as_data->type);
 			printf("\n");
 
+			break;
+		}
+		case AST_META:
+		{
+			printf("meta '%s' '%s'\n",
+			       bases[base_i].meta_data.cmd,
+			       bases[base_i].meta_data.data);
 			break;
 		}
 		case AST_SEP:

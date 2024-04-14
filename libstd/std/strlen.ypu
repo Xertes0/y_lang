@@ -1,0 +1,2 @@
+@std_strlen :s32
+[ :s8* $str ]
