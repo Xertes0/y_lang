@@ -3,12 +3,13 @@ CC=cc
 #SANITIZERS= -fsanitize=address,leak,undefined
 SANITIZERS=
 
-CC_FLAGS= \
+CFLAGS= \
+	-MD -MP \
 	$(SANITIZERS) \
 	-ggdb \
 	-Wall -Wextra -Wshadow -Wconversion -Wpedantic
 
-LD_FLAGS= \
+LDFLAGS= \
 	$(SANITIZERS)
 
 EXE=yc
@@ -16,20 +17,24 @@ EXE=yc
 THRID_SOURCES= \
 	./third-party/sc/map/sc_map.c
 
-SOURCES= \
-	ast.c token.c types.c llvm.c llvm_types.c yc.c
-
+SOURCES=$(shell find -not \( -path "./third-party" -prune \) -name '*.c')
 OBJECTS=$(SOURCES:.c=.o) $(THRID_SOURCES:.c=.o)
+DEPENDS=$(SOURCES:.c=.d)
 
-all: yc
+all: $(EXE)
+
+run: $(EXE)
+	./$(EXE) ./text.ycu ./text.ll
 
 %.o: %.c
-	$(CC) $(CC_FLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(EXE): $(OBJECTS)
-	$(CC) $(LD_FLAGS) $^ -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 clean:
-	rm $(EXE) $(OBJECTS)
+	rm -Rf $(EXE) $(OBJECTS) $(DEPENDS)
 
 .PHONY: all clean
+
+-include $(DEPENDS)
