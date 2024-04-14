@@ -1,5 +1,5 @@
 @std_put_s
-[ :s8* $str ]
+[ :s8* ]
 
 @std_put_i32
-[ :s32 $i_num ]
+[ :s32 ]

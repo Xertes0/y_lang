@@ -612,6 +612,7 @@ void generate_llvm(
 			size_t tmp_base_count;
 			build_ast_base(tokens, token_count, &tmp_bases, &tmp_base_count);
 
+			/* print_ast_bases(tmp_bases, tmp_base_count, 0); */
 			generate_llvm(tmp_bases, tmp_base_count, ctx, stream);
 
 			break;

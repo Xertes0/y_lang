@@ -205,22 +205,20 @@ size_t build_ast_base(
 				}
 			} else {
 				// Function dec/def
-				int func_type = 100;
-				int function_found = 0;
-				for(size_t dec_i=token_i+1;dec_i<token_count;++dec_i) {
-					if(tokens[dec_i].type == TOKEN_FUNCTION) {
-						function_found = 1;
-					}
-					if(tokens[dec_i+1].type == TOKEN_KEYWORD) {
-						if(function_found == 0) {
-							func_type = DEFINITION;
-						} else {
-							func_type = DECLARATION;
+				int func_type = DECLARATION;
+				if (tokens[token_i+1].type == TOKEN_TYPE &&
+				    tokens[token_i+2].type == TOKEN_KEYWORD) {
+					func_type = DEFINITION;
+				} else {
+					for(size_t dec_i=token_i+1; dec_i+1 < token_count; ++dec_i) {
+						if(tokens[dec_i].type == TOKEN_END) {
+							if(tokens[dec_i+1].type == TOKEN_KEYWORD) {
+								func_type = DEFINITION;
+							}
+							break;
 						}
-						break;
 					}
 				}
-				assert(func_type != 100);
 				//printf("%s is a function %s\n", tokens[token_i].str, func_type==DEFINITION?"definition":"declaration");
 
 				base[*base_count].type = AST_PROC;
