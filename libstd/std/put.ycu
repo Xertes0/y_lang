@@ -10,7 +10,7 @@ _begin
     :void _ret
 _end
 
-@std_put_i32
+@std_put_s32
 [ :s32 $i_num ]
 _begin
     :s32 $num .

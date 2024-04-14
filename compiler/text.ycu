@@ -17,7 +17,7 @@ _begin
         $a * $a * _add $a =
     _end
 
-    $a * @std_put_i32 !
+    $a * @std_put_s32 !
 
     "\n" @std_put_s !
 
@@ -28,7 +28,7 @@ _begin
     $src:s32 $dest =
 
     "Casted s8 to s32 " @std_put_s !
-    $dest * @std_put_i32 !
+    $dest * @std_put_s32 !
     "\n" @std_put_s !
 
     0 _ret
