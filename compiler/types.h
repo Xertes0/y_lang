@@ -4,36 +4,36 @@
 
 enum type_type_type
 {
-    TYPE_ARRAY,
-    TYPE_BOOL,
-    TYPE_FLOATING,
-    TYPE_SIGNED,
-    TYPE_UNSIGNED,
-    //TYPE_USERDEF,
-    TYPE_VOID,
+	TYPE_ARRAY,
+	TYPE_BOOL,
+	TYPE_FLOATING,
+	TYPE_SIGNED,
+	TYPE_UNSIGNED,
+	//TYPE_USERDEF,
+	TYPE_VOID,
 };
 
 struct type_number
 {
-    unsigned bit_count;
+	unsigned bit_count;
 };
 
 struct type_array
 {
-    struct type_type *holds;
-    size_t size;
+	struct type_type *holds;
+	size_t size;
 };
 
 struct type_type
 {
-    enum type_type_type type;
-    unsigned ptr_count;
+	enum type_type_type type;
+	unsigned ptr_count;
 
-    union
-    {
-        struct type_number number_data;
-        struct type_array  array_data;
-    };
+	union
+	{
+		struct type_number number_data;
+		struct type_array  array_data;
+	};
 };
 
 struct type_type
