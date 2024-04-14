@@ -1,4 +1,6 @@
 CC := cc
+LLC := llc
+LD := ld
 
 #SANITIZERS:= -fsanitize=address,leak,undefined
 SANITIZERS :=
@@ -25,8 +27,11 @@ DEPENDS := $(SOURCES:.c=.d)
 all: $(EXE)
 
 .PHONY: run
-run: $(EXE)
+run: $(EXE) text.ycu
 	./$(EXE) ./text.ycu ./text.ll
+	$(LLC) -filetype=obj ./text.ll -o text.o
+	$(LD) $(shell find ../libstd/std -name '*.o') ./text.o -o text
+	./text
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
