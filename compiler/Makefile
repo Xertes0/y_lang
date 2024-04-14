@@ -1,25 +1,25 @@
-CC=cc
+CC := cc
 
-#SANITIZERS= -fsanitize=address,leak,undefined
-SANITIZERS=
+#SANITIZERS:= -fsanitize=address,leak,undefined
+SANITIZERS :=
 
-CFLAGS= \
+CFLAGS := \
 	-MD -MP \
 	$(SANITIZERS) \
 	-ggdb \
 	-Wall -Wextra -Wshadow -Wconversion -Wpedantic
 
-LDFLAGS= \
+LDFLAGS := \
 	$(SANITIZERS)
 
-EXE=yc
+EXE := yc
 
-THRID_SOURCES= \
+THRID_SOURCES := \
 	./third-party/sc/map/sc_map.c
 
-SOURCES=$(shell find -not \( -path "./third-party" -prune \) -name '*.c')
-OBJECTS=$(SOURCES:.c=.o) $(THRID_SOURCES:.c=.o)
-DEPENDS=$(SOURCES:.c=.d)
+SOURCES := $(shell find -not \( -path './third-party' -prune \) -name '*.c')
+OBJECTS := $(SOURCES:.c=.o) $(THRID_SOURCES:.c=.o)
+DEPENDS := $(SOURCES:.c=.d)
 
 .PHONY: all
 all: $(EXE)
