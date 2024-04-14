@@ -31,8 +31,8 @@ _begin
         10 $num * _div $num =
     _end
 
-    $i * 32 _sub
-    $i * $buff ,
+    $i * 31 _sub
+    $i * 1 _add $buff ,
     @std_syswrite !
 
     :void _ret
