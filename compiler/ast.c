@@ -66,18 +66,18 @@ size_t build_ast_base(
 
 				return token_i+1;
 			} else if(strcmp(token_str, "_add") == 0) {
-				DEF_ARTH(ARTH_ADD)
-					} else if(strcmp(token_str, "_sub") == 0) {
-				DEF_ARTH(ARTH_SUB)
-					} else if(strcmp(token_str, "_div") == 0) {
-				DEF_ARTH(ARTH_DIV)
-					} else if(strcmp(token_str, "_mod") == 0) {
-				DEF_ARTH(ARTH_MOD)
-					} else if(strcmp(token_str, "_eq") == 0) {
-				DEF_ARTH(ARTH_EQ)
-					} else if(strcmp(token_str, "_ne") == 0) {
-				DEF_ARTH(ARTH_NE)
-					} else if(strcmp(token_str, "_as") == 0) {
+				DEF_ARTH(ARTH_ADD);
+			} else if(strcmp(token_str, "_sub") == 0) {
+				DEF_ARTH(ARTH_SUB);
+			} else if(strcmp(token_str, "_div") == 0) {
+				DEF_ARTH(ARTH_DIV);
+			} else if(strcmp(token_str, "_mod") == 0) {
+				DEF_ARTH(ARTH_MOD);
+			} else if(strcmp(token_str, "_eq") == 0) {
+				DEF_ARTH(ARTH_EQ);
+			} else if(strcmp(token_str, "_ne") == 0) {
+				DEF_ARTH(ARTH_NE);
+			} else if(strcmp(token_str, "_as") == 0) {
 				assert(hist_count >= 2);
 
 				struct ast_base ast;
